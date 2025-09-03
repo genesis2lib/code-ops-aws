@@ -57,12 +57,12 @@
     "directories": {
       "create": [
         ".github/workflows",
-        "ops/helper", 
-        "ops/ec2-setup",
-        "ops/terraform",
-        "ops/terraform/templates",
-        "ops/terraform/bootstrap", 
-        "ops/terraform/environments"
+        "helper", 
+        "ec2-setup",
+        "terraform",
+        "terraform/templates",
+        "terraform/bootstrap", 
+        "terraform/environments"
       ]
     },
     
@@ -72,27 +72,27 @@
         "description": "GitHub Actions CI/CD workflows"
       },
       {
-        "path": "ops/helper/*.sh.mustache", 
+        "path": "helper/*.sh.mustache", 
         "description": "Helper scripts for ops tasks"
       },
       {
-        "path": "ops/ec2-setup/*",
+        "path": "ec2-setup/*",
         "description": "EC2 instance setup files"
       },
       {
-        "path": "ops/terraform/*.tf.mustache",
+        "path": "terraform/*.tf.mustache",
         "description": "Terraform infrastructure definitions"
       },
       {
-        "path": "ops/terraform/*.hcl.mustache", 
+        "path": "terraform/*.hcl.mustache", 
         "description": "Terraform backend configuration"
       },
       {
-        "path": "ops/terraform/bootstrap/*.tf.mustache",
+        "path": "terraform/bootstrap/*.tf.mustache",
         "description": "Terraform bootstrap configuration"
       },
       {
-        "path": "ops/terraform/environments/*.tfvars.mustache",
+        "path": "terraform/environments/*.tfvars.mustache",
         "description": "Environment-specific Terraform variables",
         "dynamic": true,
         "source": "environments"
@@ -102,7 +102,7 @@
     "postProcess": [
       {
         "type": "chmod",
-        "pattern": "ops/**/*.sh",
+        "pattern": "**/*.sh",
         "mode": "+x"
       }
     ]
