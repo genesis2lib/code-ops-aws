@@ -1,0 +1,19 @@
+environment                = "{{environment}}"
+aws_region                 = "{{region}}"
+instance_type              = "{{instanceType}}"
+min_size                   = {{minSize}}
+max_size                   = {{maxSize}}
+desired_capacity           = {{desiredCapacity}}
+database_instance_class    = "{{databaseClass}}"
+database_allocated_storage = {{databaseStorage}}
+
+# Optional: Set these if you have a custom domain and certificate for {{environment}} environment
+{{#domainName}}
+domain_name     = "{{domainName}}"
+{{/domainName}}
+{{#certificateArn}}
+certificate_arn = "{{certificateArn}}"
+{{/certificateArn}}
+
+# Restrict access if needed (default allows all)
+allowed_cidr_blocks = [{{#allowedCidrBlocks}}"{{.}}"{{#hasMore}}, {{/hasMore}}{{/allowedCidrBlocks}}]

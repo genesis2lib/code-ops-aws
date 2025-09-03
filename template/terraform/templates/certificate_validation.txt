@@ -1,0 +1,33 @@
+===============================================
+SSL CERTIFICATE VALIDATION REQUIRED
+===============================================
+
+Primary Domain: ${domain_name}
+Additional Domains: Root domain + wildcard subdomain
+
+To complete SSL certificate validation, add the following DNS records to your DNS provider:
+
+%{ for dvo in validation_options ~}
+Domain: ${dvo.domain_name}
+Record Type: CNAME
+Name: ${dvo.resource_record_name}
+Value: ${dvo.resource_record_value}
+
+%{ endfor ~}
+
+IMPORTANT NOTES:
+1. Add ALL CNAME records above to your DNS provider (where your domain is hosted)
+2. Each domain (primary + SANs) requires its own validation record
+3. DNS propagation may take up to 48 hours, but usually completes within 15 minutes
+4. The certificate will remain in "PENDING_VALIDATION" status until ALL DNS records are added
+5. Once validated, the certificate will automatically be applied to CloudFront
+6. Do NOT delete these DNS records - they are required for certificate renewal
+
+After adding DNS records, you can check validation status with:
+aws acm describe-certificate --certificate-arn <certificate-arn> --region us-east-1
+
+CERTIFICATE COVERS:
+- ${domain_name} (primary)
+- Root domain and wildcard subdomain (SANs)
+
+===============================================

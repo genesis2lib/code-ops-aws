@@ -1,0 +1,127 @@
+{
+  "version": "1.0.0",
+  "metadata": {
+    "name": "code-ops-aws",
+    "kind": "code",
+    "layer": "ops", 
+    "type": "aws",
+    "description": "Complete AWS infrastructure setup with Terraform, GitHub Actions CI/CD, EC2 setup, and multi-environment support",
+    "author": "Genesis2",
+    "tags": ["aws", "terraform", "infrastructure", "cicd", "ops"],
+    "documentation": "https://docs.genesis2.dev/code-ops-aws"
+  },
+  "requirements": {
+    "runtime": {
+      "terraform": ">=1.0.0",
+      "aws-cli": ">=2.0.0"
+    },
+    "build": {
+      "bash": ">=4.0.0"
+    }
+  },
+  
+  "validation": {
+    "required": {
+      "projectName": {
+        "type": "string",
+        "description": "Project name for resource naming"
+      },
+      "domain": {
+        "type": "string", 
+        "description": "Domain name for the application"
+      },
+      "region": {
+        "type": "string",
+        "description": "AWS region for deployment"
+      }
+    },
+    "optional": {
+      "accountId": {
+        "type": "string",
+        "description": "AWS account ID"
+      },
+      "adminUser": {
+        "type": "string", 
+        "description": "AWS admin user for initial setup",
+        "default": "admin"
+      },
+      "dnsProvider": {
+        "type": "string",
+        "description": "DNS provider (route53, cloudflare, etc)",
+        "default": "route53"
+      }
+    }
+  },
+
+  "generation": {
+    "directories": {
+      "create": [
+        ".github/workflows",
+        "ops/helper", 
+        "ops/ec2-setup",
+        "ops/terraform",
+        "ops/terraform/templates",
+        "ops/terraform/bootstrap", 
+        "ops/terraform/environments"
+      ]
+    },
+    
+    "templates": [
+      {
+        "path": ".github/workflows/*.yml.mustache",
+        "description": "GitHub Actions CI/CD workflows"
+      },
+      {
+        "path": "ops/helper/*.sh.mustache", 
+        "description": "Helper scripts for ops tasks"
+      },
+      {
+        "path": "ops/ec2-setup/*",
+        "description": "EC2 instance setup files"
+      },
+      {
+        "path": "ops/terraform/*.tf.mustache",
+        "description": "Terraform infrastructure definitions"
+      },
+      {
+        "path": "ops/terraform/*.hcl.mustache", 
+        "description": "Terraform backend configuration"
+      },
+      {
+        "path": "ops/terraform/bootstrap/*.tf.mustache",
+        "description": "Terraform bootstrap configuration"
+      },
+      {
+        "path": "ops/terraform/environments/*.tfvars.mustache",
+        "description": "Environment-specific Terraform variables",
+        "dynamic": true,
+        "source": "environments"
+      }
+    ],
+    
+    "postProcess": [
+      {
+        "type": "chmod",
+        "pattern": "ops/**/*.sh",
+        "mode": "+x"
+      }
+    ]
+  },
+
+  "environments": {
+    "supported": ["development", "staging", "production", "test"],
+    "required": ["production"],
+    "instanceTypes": {
+      "development": "t2.nano",
+      "staging": "t2.micro", 
+      "production": "t2.small",
+      "test": "t2.nano"
+    },
+    "databaseClasses": {
+      "development": "db.t3.micro",
+      "staging": "db.t3.micro",
+      "production": "db.t3.small", 
+      "test": "db.t3.micro"
+    }
+  }
+}
