@@ -8,7 +8,7 @@
     "description": "Complete AWS infrastructure setup with Terraform, GitHub Actions CI/CD, EC2 setup, and multi-environment support",
     "author": "Genesis2",
     "tags": ["aws", "terraform", "infrastructure", "cicd", "ops"],
-    "documentation": "https://docs.genesis2.dev/code-ops-aws"
+    "documentation": "https://g.rathnas.com/lib-docs/code-ops-aws"
   },
   "requirements": {
     "runtime": {
