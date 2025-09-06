@@ -33,13 +33,13 @@
       "region": {
         "type": "string",
         "description": "AWS region for deployment"
-      }
-    },
-    "optional": {
+      },
       "accountId": {
         "type": "string",
         "description": "AWS account ID"
-      },
+      }
+    },
+    "optional": {
       "adminUser": {
         "type": "string", 
         "description": "AWS admin user for initial setup",
@@ -59,6 +59,7 @@
         ".github/workflows",
         "helper", 
         "ec2-setup",
+        "ssh-keys",
         "terraform",
         "terraform/templates",
         "terraform/bootstrap", 
@@ -78,6 +79,10 @@
       {
         "path": "ec2-setup/*",
         "description": "EC2 instance setup files"
+      },
+      {
+        "path": "ssh-keys/.gitkeep.mustache", 
+        "description": "SSH keys directory placeholder"
       },
       {
         "path": "terraform/*.tf.mustache",
