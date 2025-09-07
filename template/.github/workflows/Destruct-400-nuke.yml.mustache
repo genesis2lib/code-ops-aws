@@ -639,7 +639,7 @@ jobs:
           # Set admin credentials for this step
           echo "Current ACCESS KEY ID: ${AWS_ACCESS_KEY_ID:0:10} Expected: {{adminUser}}"
           export AWS_ACCESS_KEY_ID={{adminUser}}
-          export AWS_SECRET_ACCESS_KEY="{{{githubVarsOpen}}} secrets.AWS_ADMIN_KEY  {{{githubVarsClose}}}"
+          export AWS_SECRET_ACCESS_KEY="{{{githubVarsOpen}}} secrets.AWS_ADMIN_SECRET  {{{githubVarsClose}}}"
           export AWS_DEFAULT_REGION="{{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}}"
           unset AWS_SESSION_TOKEN
           
@@ -780,7 +780,7 @@ jobs:
             cd ops/helper
             chmod +x cleanup-manual.sh
             # Ensure the cleanup script uses admin credentials
-            AWS_ACCESS_KEY_ID={{adminUser}} AWS_SECRET_ACCESS_KEY="{{{githubVarsOpen}}} secrets.AWS_ADMIN_KEY  {{{githubVarsClose}}}" AWS_DEFAULT_REGION="{{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}}" ./cleanup-manual.sh {{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}} 2>/dev/null || true
+            AWS_ACCESS_KEY_ID={{adminUser}} AWS_SECRET_ACCESS_KEY="{{{githubVarsOpen}}} secrets.AWS_ADMIN_SECRET  {{{githubVarsClose}}}" AWS_DEFAULT_REGION="{{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}}" ./cleanup-manual.sh {{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}} 2>/dev/null || true
             echo "✅ Additional cleanup script completed!"
           fi
           
@@ -795,7 +795,7 @@ jobs:
           # Set admin credentials for this step
           echo "Current ACCESS KEY ID: ${AWS_ACCESS_KEY_ID:0:10} Expected: {{adminUser}}"
           export AWS_ACCESS_KEY_ID={{adminUser}}
-          export AWS_SECRET_ACCESS_KEY="{{{githubVarsOpen}}} secrets.AWS_ADMIN_KEY  {{{githubVarsClose}}}"
+          export AWS_SECRET_ACCESS_KEY="{{{githubVarsOpen}}} secrets.AWS_ADMIN_SECRET  {{{githubVarsClose}}}"
           export AWS_DEFAULT_REGION="{{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}}"
           unset AWS_SESSION_TOKEN
           
@@ -833,7 +833,7 @@ jobs:
           # Set admin credentials for this step
           echo "Current ACCESS KEY ID: ${AWS_ACCESS_KEY_ID:0:10} Expected: {{adminUser}}"
           export AWS_ACCESS_KEY_ID={{adminUser}}
-          export AWS_SECRET_ACCESS_KEY="{{{githubVarsOpen}}} secrets.AWS_ADMIN_KEY  {{{githubVarsClose}}}"
+          export AWS_SECRET_ACCESS_KEY="{{{githubVarsOpen}}} secrets.AWS_ADMIN_SECRET  {{{githubVarsClose}}}"
           export AWS_DEFAULT_REGION="{{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}}"
           unset AWS_SESSION_TOKEN
           

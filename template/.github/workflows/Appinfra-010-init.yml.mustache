@@ -9,7 +9,7 @@ permissions:
 
 env:
   AWS_REGION: {{region}}
-  AWS_ACCESS_KEY_ID: {{{githubVarsOpen}}} vars.AWS_ADMIN_ACCESS_KEY_ID {{{githubVarsClose}}}
+  AWS_ACCESS_KEY_ID: {{{githubVarsOpen}}} vars.AWS_ADMIN_ID {{{githubVarsClose}}}
 
 jobs:
   init:
@@ -43,7 +43,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: {{{githubVarsOpen}}} env.AWS_ACCESS_KEY_ID {{{githubVarsClose}}}
-          aws-secret-access-key: {{{githubVarsOpen}}} secrets.AWS_ADMIN_KEY {{{githubVarsClose}}}
+          aws-secret-access-key: {{{githubVarsOpen}}} secrets.AWS_ADMIN_SECRET {{{githubVarsClose}}}
           aws-region: {{{githubVarsOpen}}} env.AWS_REGION {{{githubVarsClose}}}
 
       - name: Create Trust Policy and Roles needed for All other github actions

@@ -41,7 +41,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: {{adminUser}}
-          aws-secret-access-key: {{{githubVarsOpen}}} secrets.AWS_ADMIN_KEY  {{{githubVarsClose}}}
+          aws-secret-access-key: {{{githubVarsOpen}}} secrets.AWS_ADMIN_SECRET  {{{githubVarsClose}}}
           aws-region: {{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}}
 
       - name: Verify AWS credentials
