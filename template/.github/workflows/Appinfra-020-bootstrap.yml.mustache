@@ -23,33 +23,33 @@ jobs:
 
       - name: Env setup
         run: |
-          if [[ "${{ github.ref_name }}" != "main" && "${{ github.ref_name }}" != "dev" ]]; then
+          if [[ "{{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" != "main" && "{{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" != "dev" ]]; then
             echo "⚠️ Workflow only supports 'main' or 'dev' branches"
-            echo "Current branch: ${{ github.ref_name }}"
+            echo "Current branch: {{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}"
             echo "Exiting with no-op"
             exit 0
           fi
           
           # Set environment variables
-          echo "BRANCH=${{ github.ref_name }}" >> $GITHUB_ENV
-          if [ "${{ github.ref_name }}" = "main" ]; then
+          echo "BRANCH={{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" >> $GITHUB_ENV
+          if [ "{{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" = "main" ]; then
             echo "ENVIRONMENT=prod" >> $GITHUB_ENV
           else 
             echo "ENVIRONMENT=test" >> $GITHUB_ENV
           fi
           
-          echo "✅ Environment setup completed: ${{ github.ref_name }}"
+          echo "✅ Environment setup completed: {{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}"
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::{{accountId}}:role/{{projectName}}-terraform-role
-          aws-region: ${{ env.AWS_REGION }}
+          aws-region: {{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}}
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: ${{ env.TF_VERSION }}
+          terraform_version: {{{githubVarsOpen}}} env.TF_VERSION  {{{githubVarsClose}}}
           terraform_wrapper: false
 
       - name: Terraform Init (Bootstrap)
@@ -65,7 +65,7 @@ jobs:
       - name: Clear DynamoDB Locks
         run: |
           echo "🔓 Checking for and clearing any Terraform locks..."
-          LOCK_TABLE="{{projectName}}-terraform-locks-${{ env.ENVIRONMENT }}"
+          LOCK_TABLE="{{projectName}}-terraform-locks-{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}"
           
           # Check if lock table exists
           if aws dynamodb describe-table --table-name "$LOCK_TABLE" >/dev/null 2>&1; then
@@ -98,7 +98,7 @@ jobs:
       - name: Terraform Plan (Bootstrap)
         run: |
           cd ops/terraform/bootstrap
-          terraform plan -var="environment=${{ env.ENVIRONMENT }}" -no-color -input=false
+          terraform plan -var="environment={{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}" -no-color -input=false
 
       - name: Terraform Apply (Bootstrap)
         run: |
@@ -107,7 +107,7 @@ jobs:
           
           # Try apply, but handle "already exists" errors gracefully
           set +e
-          APPLY_OUTPUT=$(terraform apply -var="environment=${{ env.ENVIRONMENT }}" -auto-approve -input=false 2>&1)
+          APPLY_OUTPUT=$(terraform apply -var="environment={{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}" -auto-approve -input=false 2>&1)
           APPLY_EXIT_CODE=$?
           set -e
           
@@ -128,13 +128,13 @@ jobs:
               terraform import aws_s3_bucket.terraform_state "$BUCKET_NAME" 2>/dev/null
               
               # Import existing DynamoDB table  
-              TABLE_NAME=$(terraform output -raw lock_table_name 2>/dev/null) || TABLE_NAME="{{projectName}}-terraform-locks-${{ env.ENVIRONMENT }}"
+              TABLE_NAME=$(terraform output -raw lock_table_name 2>/dev/null) || TABLE_NAME="{{projectName}}-terraform-locks-{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}"
               terraform import aws_dynamodb_table.terraform_locks "$TABLE_NAME" 2>/dev/null
               set -e
               
               echo "🔄 Retrying apply after import..."
               set +e
-              terraform apply -var="environment=${{ env.ENVIRONMENT }}" -auto-approve -input=false
+              terraform apply -var="environment={{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}" -auto-approve -input=false
               RETRY_EXIT_CODE=$?
               set -e
               
@@ -273,7 +273,7 @@ jobs:
           echo "Root Domain: $DOMAIN_BASE"
           
           # Check if certificate already exists
-          EXISTING_API_CERT=$(aws acm list-certificates --region ${{ env.AWS_REGION }} --query "CertificateSummaryList[?DomainName=='$API_DOMAIN'].CertificateArn" --output text)
+          EXISTING_API_CERT=$(aws acm list-certificates --region {{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}} --query "CertificateSummaryList[?DomainName=='$API_DOMAIN'].CertificateArn" --output text)
           
           if [ -n "$EXISTING_API_CERT" ] && [ "$EXISTING_API_CERT" != "None" ]; then
             echo "✅ API Certificate already exists: $EXISTING_API_CERT"
@@ -281,7 +281,7 @@ jobs:
           else
             echo "🔒 Creating new API SSL certificate..."
             API_CERT_ARN=$(aws acm request-certificate \
-              --region ${{ env.AWS_REGION }} \
+              --region {{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}} \
               --domain-name "$API_DOMAIN" \
               --subject-alternative-names "$DOMAIN_BASE" "*.${DOMAIN_BASE}" \
               --validation-method DNS \
@@ -304,7 +304,7 @@ jobs:
             echo "  Attempt $ATTEMPT/$MAX_ATTEMPTS: Checking for API DNS validation records..."
             
             # Get the validation options and check if ResourceRecord exists
-            API_VALIDATION_DATA=$(aws acm describe-certificate --region ${{ env.AWS_REGION }} --certificate-arn "$API_CERT_ARN" \
+            API_VALIDATION_DATA=$(aws acm describe-certificate --region {{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}} --certificate-arn "$API_CERT_ARN" \
               --query 'Certificate.DomainValidationOptions[]' --output json)
             
             # Check if any ResourceRecord is null
@@ -338,7 +338,7 @@ jobs:
           echo "--- UI CERTIFICATE (CloudFront - us-east-1) ---"
           
           # Get UI cert validation data
-          UI_CERT_ARN="${{ steps.create-ssl-cert.outputs.UI_CERTIFICATE_ARN }}"
+          UI_CERT_ARN="{{{githubVarsOpen}}} steps.create-ssl-cert.outputs.UI_CERTIFICATE_ARN  {{{githubVarsClose}}}"
           
           echo "Getting UI certificate validation data..."
           UI_VALIDATION_DATA=$(aws acm describe-certificate --region us-east-1 --certificate-arn "$UI_CERT_ARN" \
@@ -355,13 +355,13 @@ jobs:
               end' 2>/dev/null || echo "⚠️ Error parsing UI validation data"
           fi
           
-          echo "--- API CERTIFICATE (ALB - ${{ env.AWS_REGION }}) ---"
+          echo "--- API CERTIFICATE (ALB - {{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}}) ---"
           
           # Get API cert validation data
-          API_CERT_ARN="${{ steps.create-api-ssl-cert.outputs.API_CERTIFICATE_ARN }}"
+          API_CERT_ARN="{{{githubVarsOpen}}} steps.create-api-ssl-cert.outputs.API_CERTIFICATE_ARN  {{{githubVarsClose}}}"
           
           echo "Getting API certificate validation data..."
-          API_VALIDATION_DATA=$(aws acm describe-certificate --region ${{ env.AWS_REGION }} --certificate-arn "$API_CERT_ARN" \
+          API_VALIDATION_DATA=$(aws acm describe-certificate --region {{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}} --certificate-arn "$API_CERT_ARN" \
             --query 'Certificate.DomainValidationOptions[]' --output json 2>/dev/null || echo '[]')
           
           if [ "$API_VALIDATION_DATA" = "[]" ] || [ -z "$API_VALIDATION_DATA" ]; then
@@ -376,7 +376,7 @@ jobs:
           fi
           
           echo "=================================================="
-          if [ -n "${{ secrets.DNS_PROVIDER_KEY }}" ] && [ "${{ env.DNS_PROVIDER }}" = "cloudflare" ]; then
+          if [ -n "{{{githubVarsOpen}}} secrets.DNS_PROVIDER_KEY  {{{githubVarsClose}}}" ] && [ "{{{githubVarsOpen}}} env.DNS_PROVIDER  {{{githubVarsClose}}}" = "cloudflare" ]; then
             echo "🚀 Automatic DNS management will be attempted in the next step"
             echo "⏳ Both certificates will auto-validate once DNS records are added"
           else
@@ -391,22 +391,22 @@ jobs:
           echo "🔍 Checking for DNS provider API key..."
           
           # Check if DNS_PROVIDER_KEY secret is available
-          if [ -z "${{ secrets.DNS_PROVIDER_KEY }}" ]; then
+          if [ -z "{{{githubVarsOpen}}} secrets.DNS_PROVIDER_KEY  {{{githubVarsClose}}}" ]; then
             echo "⚠️ No DNS_PROVIDER_KEY secret found. Skipping automatic DNS management."
             echo "DNS_AUTO_MANAGED=false" >> $GITHUB_OUTPUT
             exit 0
           fi
           
           # Check if DNS_PROVIDER is set and supported
-          if [ -z "${{ env.DNS_PROVIDER }}" ]; then
+          if [ -z "{{{githubVarsOpen}}} env.DNS_PROVIDER  {{{githubVarsClose}}}" ]; then
             echo "⚠️ DNS_PROVIDER environment variable not set. Skipping automatic DNS management."
             echo "DNS_AUTO_MANAGED=false" >> $GITHUB_OUTPUT
             exit 0
           fi
           
           # Currently only support Cloudflare
-          if [ "${{ env.DNS_PROVIDER }}" != "cloudflare" ]; then
-            echo "⚠️ DNS provider '${{ env.DNS_PROVIDER }}' not supported. Currently only 'cloudflare' is supported."
+          if [ "{{{githubVarsOpen}}} env.DNS_PROVIDER  {{{githubVarsClose}}}" != "cloudflare" ]; then
+            echo "⚠️ DNS provider '{{{githubVarsOpen}}} env.DNS_PROVIDER  {{{githubVarsClose}}}' not supported. Currently only 'cloudflare' is supported."
             echo "DNS_AUTO_MANAGED=false" >> $GITHUB_OUTPUT
             exit 0
           fi
@@ -415,8 +415,8 @@ jobs:
           echo "🚀 Attempting to automatically manage DNS records..."
           
           # Get certificate validation data
-          UI_CERT_ARN="${{ steps.create-ssl-cert.outputs.UI_CERTIFICATE_ARN }}"
-          API_CERT_ARN="${{ steps.create-api-ssl-cert.outputs.API_CERTIFICATE_ARN }}"
+          UI_CERT_ARN="{{{githubVarsOpen}}} steps.create-ssl-cert.outputs.UI_CERTIFICATE_ARN  {{{githubVarsClose}}}"
+          API_CERT_ARN="{{{githubVarsOpen}}} steps.create-api-ssl-cert.outputs.API_CERTIFICATE_ARN  {{{githubVarsClose}}}"
           
           # Function to get validation records for a certificate
           get_validation_records() {
@@ -538,7 +538,7 @@ jobs:
           echo "🔍 Testing Cloudflare API connectivity..."
           DOMAIN_BASE="{{sld}}.{{tld}}"
           test_response=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones?name=$DOMAIN_BASE" \
-            -H "Authorization: Bearer ${{ secrets.DNS_PROVIDER_KEY }}" \
+            -H "Authorization: Bearer {{{githubVarsOpen}}} secrets.DNS_PROVIDER_KEY  {{{githubVarsClose}}}" \
             -H "Content-Type: application/json" 2>/dev/null || echo '{"success":false}')
           
           if echo "$test_response" | jq -e '.success' >/dev/null 2>&1; then
@@ -558,12 +558,12 @@ jobs:
                 echo "  Processing: $domain -> $cname_name -> $cname_value"
                 
                 # Check if record already exists
-                record_exists=$(check_cloudflare_record "$DOMAIN_BASE" "$cname_name" "${{ secrets.DNS_PROVIDER_KEY }}")
+                record_exists=$(check_cloudflare_record "$DOMAIN_BASE" "$cname_name" "{{{githubVarsOpen}}} secrets.DNS_PROVIDER_KEY  {{{githubVarsClose}}}")
                 if [ "$record_exists" = "true" ]; then
                   echo "  ✅ CNAME record already exists: $cname_name"
                 else
                   echo "  ➕ Adding CNAME record: $cname_name -> $cname_value"
-                  add_cloudflare_record "$DOMAIN_BASE" "$cname_name" "$cname_value" "${{ secrets.DNS_PROVIDER_KEY }}" || true
+                  add_cloudflare_record "$DOMAIN_BASE" "$cname_name" "$cname_value" "{{{githubVarsOpen}}} secrets.DNS_PROVIDER_KEY  {{{githubVarsClose}}}" || true
                 fi
               fi
             done
@@ -571,19 +571,19 @@ jobs:
           
           # Process API certificate validation records
           echo "🔐 Processing API certificate validation records..."
-          api_records=$(get_validation_records "$API_CERT_ARN" "${{ env.AWS_REGION }}" "API certificate")
+          api_records=$(get_validation_records "$API_CERT_ARN" "{{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}}" "API certificate")
           if [ $? -eq 0 ] && [ -n "$api_records" ]; then
             echo "$api_records" | while IFS='|' read -r domain cname_name cname_value; do
               if [ -n "$domain" ] && [ -n "$cname_name" ] && [ -n "$cname_value" ]; then
                 echo "  Processing: $domain -> $cname_name -> $cname_value"
                 
                 # Check if record already exists
-                record_exists=$(check_cloudflare_record "$DOMAIN_BASE" "$cname_name" "${{ secrets.DNS_PROVIDER_KEY }}")
+                record_exists=$(check_cloudflare_record "$DOMAIN_BASE" "$cname_name" "{{{githubVarsOpen}}} secrets.DNS_PROVIDER_KEY  {{{githubVarsClose}}}")
                 if [ "$record_exists" = "true" ]; then
                   echo "  ✅ CNAME record already exists: $cname_name"
                 else
                   echo "  ➕ Adding CNAME record: $cname_name -> $cname_value"
-                  add_cloudflare_record "$DOMAIN_BASE" "$cname_name" "$cname_value" "${{ secrets.DNS_PROVIDER_KEY }}" || true
+                  add_cloudflare_record "$DOMAIN_BASE" "$cname_name" "$cname_value" "{{{githubVarsOpen}}} secrets.DNS_PROVIDER_KEY  {{{githubVarsClose}}}" || true
                 fi
               fi
             done
@@ -604,17 +604,17 @@ jobs:
           echo "## SSL Certificates Created 🔐" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**UI Domain:** {{projectName}}-ui.{{sld}}.{{tld}} (CloudFront - us-east-1)" >> $GITHUB_STEP_SUMMARY
-          echo "**UI Certificate ARN:** ${{ steps.create-ssl-cert.outputs.UI_CERTIFICATE_ARN }}" >> $GITHUB_STEP_SUMMARY
+          echo "**UI Certificate ARN:** {{{githubVarsOpen}}} steps.create-ssl-cert.outputs.UI_CERTIFICATE_ARN  {{{githubVarsClose}}}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**API Domain:** {{projectName}}-api.{{sld}}.{{tld}} (ALB - ${{ env.AWS_REGION }})" >> $GITHUB_STEP_SUMMARY
-          echo "**API Certificate ARN:** ${{ steps.create-api-ssl-cert.outputs.API_CERTIFICATE_ARN }}" >> $GITHUB_STEP_SUMMARY
+          echo "**API Domain:** {{projectName}}-api.{{sld}}.{{tld}} (ALB - {{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}})" >> $GITHUB_STEP_SUMMARY
+          echo "**API Certificate ARN:** {{{githubVarsOpen}}} steps.create-api-ssl-cert.outputs.API_CERTIFICATE_ARN  {{{githubVarsClose}}}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
           # Add DNS management status
-          if [ "${{ steps.auto-dns.outputs.DNS_AUTO_MANAGED }}" = "true" ]; then
+          if [ "{{{githubVarsOpen}}} steps.auto-dns.outputs.DNS_AUTO_MANAGED  {{{githubVarsClose}}}" = "true" ]; then
             echo "## DNS Records Auto-Managed ✅" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Provider:** ${{ env.DNS_PROVIDER }}" >> $GITHUB_STEP_SUMMARY
+            echo "**Provider:** {{{githubVarsOpen}}} env.DNS_PROVIDER  {{{githubVarsClose}}}" >> $GITHUB_STEP_SUMMARY
             echo "**Status:** DNS validation records were automatically added to your DNS provider" >> $GITHUB_STEP_SUMMARY
             echo "**Note:** Certificates will auto-validate once DNS propagation completes" >> $GITHUB_STEP_SUMMARY
           else

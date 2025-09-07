@@ -21,45 +21,45 @@ jobs:
 
       - name: Env setup
         run: |
-          if [[ "${{ github.ref_name }}" != "main" && "${{ github.ref_name }}" != "dev" ]]; then
+          if [[ "{{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" != "main" && "{{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" != "dev" ]]; then
             echo "⚠️ Workflow only supports 'main' or 'dev' branches"
-            echo "Current branch: ${{ github.ref_name }}"
+            echo "Current branch: {{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}"
             echo "Exiting with no-op"
             exit 0
           fi
           
           # Set environment variables
-          echo "BRANCH=${{ github.ref_name }}" >> $GITHUB_ENV
-          if [ "${{ github.ref_name }}" = "main" ]; then
+          echo "BRANCH={{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" >> $GITHUB_ENV
+          if [ "{{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" = "main" ]; then
             echo "ENVIRONMENT=prod" >> $GITHUB_ENV
           else
             echo "ENVIRONMENT=test" >> $GITHUB_ENV
           fi
           
-          echo "✅ Environment setup completed: ${{ github.ref_name }}"
+          echo "✅ Environment setup completed: {{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}"
 
       - name: Credential for AWS
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::{{accountId}}:role/{{projectName}}-${{ env.ENVIRONMENT }}-ops-deploy-ec2-role
-          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: arn:aws:iam::{{accountId}}:role/{{projectName}}-{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}-ops-deploy-ec2-role
+          aws-region: {{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}}
 
       - name: Setup Environment
         run: |
-          echo "Event name: ${{ github.event_name }}"
-          echo "Branch: ${{ env.BRANCH }}"
-          echo "Environment: ${{ env.ENVIRONMENT }}"
+          echo "Event name: {{{githubVarsOpen}}} github.event_name  {{{githubVarsClose}}}"
+          echo "Branch: {{{githubVarsOpen}}} env.BRANCH  {{{githubVarsClose}}}"
+          echo "Environment: {{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}"
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: ${{ env.TF_VERSION }}
+          terraform_version: {{{githubVarsOpen}}} env.TF_VERSION  {{{githubVarsClose}}}
           terraform_wrapper: false
 
       - name: Get Terraform Outputs
         run: |
           cd ops/terraform
-          echo "🔍 Getting Terraform outputs for ${{ env.ENVIRONMENT }} environment..."
+          echo "🔍 Getting Terraform outputs for {{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}} environment..."
           
           # Initialize Terraform to access state
           terraform init -backend-config=backend-${ENVIRONMENT}.hcl -input=false
@@ -78,18 +78,18 @@ jobs:
           echo "✅ Found ops bucket: $OPS_BUCKET"
           echo "OPS_BUCKET=$OPS_BUCKET" >> $GITHUB_ENV
         env:
-          AWS_DEFAULT_REGION: ${{ env.AWS_REGION }}
+          AWS_DEFAULT_REGION: {{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}}
 
       - name: Get EC2 Instances by Tags
         run: |
           echo "🔍 Finding EC2 instances by tags..."
-          echo "Looking for instances with Project={{projectName}} and Environment=${{ env.ENVIRONMENT }}"
+          echo "Looking for instances with Project={{projectName}} and Environment={{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}"
           
           # Query EC2 instances by tags
           EC2_INSTANCES=$(aws ec2 describe-instances \
             --filters \
               "Name=tag:Project,Values={{projectName}}" \
-              "Name=tag:Environment,Values=${{ env.ENVIRONMENT }}" \
+              "Name=tag:Environment,Values={{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}" \
               "Name=instance-state-name,Values=running" \
             --query 'Reservations[*].Instances[*].InstanceId' \
             --output text | tr '\n\t ' ',' | sed 's/,,*/,/g' | sed 's/^,//g' | sed 's/,$//g')
@@ -98,7 +98,7 @@ jobs:
             echo "EC2_INSTANCES=${EC2_INSTANCES}" >> $GITHUB_ENV
             echo "✅ Found running instances: ${EC2_INSTANCES}"
           else
-            echo "❌ No running instances found with tags Project={{projectName}} and Environment=${{ env.ENVIRONMENT }}"
+            echo "❌ No running instances found with tags Project={{projectName}} and Environment={{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}"
             echo "This could indicate:"
             echo "  1. Instances are still launching"
             echo "  2. Instances failed to start properly" 
@@ -108,7 +108,7 @@ jobs:
             aws ec2 describe-instances \
               --filters \
                 "Name=tag:Project,Values={{projectName}}" \
-                "Name=tag:Environment,Values=${{ env.ENVIRONMENT }}" \
+                "Name=tag:Environment,Values={{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}" \
               --query 'Reservations[*].Instances[*].{InstanceId:InstanceId,State:State.Name,Name:Tags[?Key==`Name`].Value|[0]}' \
               --output table || true
             echo "⚠️ Skipping password setup - no instances to configure"

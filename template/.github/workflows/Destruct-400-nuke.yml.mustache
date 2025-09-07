@@ -23,33 +23,33 @@ jobs:
 
       - name: Env setup
         run: |
-          if [[ "${{ github.ref_name }}" != "main" && "${{ github.ref_name }}" != "dev" ]]; then
+          if [[ "{{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" != "main" && "{{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" != "dev" ]]; then
             echo "⚠️ Workflow only supports 'main' or 'dev' branches"
-            echo "Current branch: ${{ github.ref_name }}"
+            echo "Current branch: {{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}"
             echo "Exiting with no-op"
             exit 0
           fi
           
           # Set environment variables
-          echo "BRANCH=${{ github.ref_name }}" >> $GITHUB_ENV
-          if [ "${{ github.ref_name }}" = "main" ]; then
+          echo "BRANCH={{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" >> $GITHUB_ENV
+          if [ "{{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" = "main" ]; then
             echo "ENVIRONMENT=prod" >> $GITHUB_ENV
           else
             echo "ENVIRONMENT=test" >> $GITHUB_ENV
           fi
           
-          echo "✅ Environment setup completed: ${{ github.ref_name }}"
+          echo "✅ Environment setup completed: {{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}"
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::{{accountId}}:role/{{projectName}}-terraform-role
-          aws-region: ${{ env.AWS_REGION }}
+          aws-region: {{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}}
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: ${{ env.TF_VERSION }}
+          terraform_version: {{{githubVarsOpen}}} env.TF_VERSION  {{{githubVarsClose}}}
           terraform_wrapper: false
 
       - name: "Phase 1: Pre-Destroy Comprehensive Cleanup"
@@ -68,7 +68,7 @@ jobs:
             case "$resource_type" in
               "cloudfront")
                 echo "    🌐 Checking CloudFront distributions..."
-                DISTRIBUTIONS=$(aws cloudfront list-distributions --query "DistributionList.Items[?Comment=='{{projectName}} ${{ env.ENVIRONMENT }} client distribution'].Id" --output text 2>/dev/null || true)
+                DISTRIBUTIONS=$(aws cloudfront list-distributions --query "DistributionList.Items[?Comment=='{{projectName}} {{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}} client distribution'].Id" --output text 2>/dev/null || true)
                 
                 # Handle case where no distributions are found (returns "None")
                 if [ "$DISTRIBUTIONS" = "None" ] || [ -z "$DISTRIBUTIONS" ]; then
@@ -242,18 +242,18 @@ jobs:
           cleanup_resource "cloudfront" "" "CloudFront distributions"
           
           # Phase 1b: Scale down compute resources
-          cleanup_resource "asg" "{{projectName}}-${{ env.ENVIRONMENT }}-asg" "Auto Scaling Group"
+          cleanup_resource "asg" "{{projectName}}-{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}-asg" "Auto Scaling Group"
           
           # Phase 1c: Prepare database
-          cleanup_resource "rds-instance" "{{projectName}}-${{ env.ENVIRONMENT }}-db" "RDS PostgreSQL instance"
+          cleanup_resource "rds-instance" "{{projectName}}-{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}-db" "RDS PostgreSQL instance"
           
           # Phase 1d: Empty storage
-          cleanup_resource "s3-bucket" "{{projectName}}-${{ env.ENVIRONMENT }}-client-bucket" "Client S3 bucket"
-          cleanup_resource "s3-bucket" "{{projectName}}-${{ env.ENVIRONMENT }}-ops" "Ops S3 bucket"
+          cleanup_resource "s3-bucket" "{{projectName}}-{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}-client-bucket" "Client S3 bucket"
+          cleanup_resource "s3-bucket" "{{projectName}}-{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}-ops" "Ops S3 bucket"
           
           # Phase 1e: Clean IAM (no dependencies)
-          cleanup_resource "iam-role" "{{projectName}}-${{ env.ENVIRONMENT }}-ec2-role" "EC2 IAM role"
-          cleanup_resource "iam-role" "{{projectName}}-${{ env.ENVIRONMENT }}-rds-monitoring-role" "RDS monitoring role"
+          cleanup_resource "iam-role" "{{projectName}}-{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}-ec2-role" "EC2 IAM role"
+          cleanup_resource "iam-role" "{{projectName}}-{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}-rds-monitoring-role" "RDS monitoring role"
           
           # Phase 1f: Handle VPC dependencies (CRITICAL for Terraform destroy)
           echo "  🌐 Handling VPC dependencies for smooth Terraform destroy..."
@@ -352,7 +352,7 @@ jobs:
           echo "  🗑️ Force emptying S3 buckets completely..."
           
           S3_BUCKETS=$(aws s3api list-buckets \
-            --query "Buckets[?contains(Name, '{{projectName}}-${{ env.ENVIRONMENT }}')].Name" \
+            --query "Buckets[?contains(Name, '{{projectName}}-{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}')].Name" \
             --output text 2>/dev/null || true)
           
           for BUCKET in $S3_BUCKETS; do
@@ -384,7 +384,7 @@ jobs:
           echo "  🛡️ Ensuring RDS deletion protection is disabled..."
           
           RDS_INSTANCES=$(aws rds describe-db-instances \
-            --query "DBInstances[?contains(DBInstanceIdentifier,'{{projectName}}-${{ env.ENVIRONMENT }}')].DBInstanceIdentifier" \
+            --query "DBInstances[?contains(DBInstanceIdentifier,'{{projectName}}-{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}')].DBInstanceIdentifier" \
             --output text 2>/dev/null || true)
           
           for DB_INSTANCE in $RDS_INSTANCES; do
@@ -406,7 +406,7 @@ jobs:
           
           # Verify S3 buckets are empty
           S3_BUCKETS_CHECK=$(aws s3api list-buckets \
-            --query "Buckets[?contains(Name, '{{projectName}}-${{ env.ENVIRONMENT }}')].Name" \
+            --query "Buckets[?contains(Name, '{{projectName}}-{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}')].Name" \
             --output text 2>/dev/null || true)
           
           for BUCKET in $S3_BUCKETS_CHECK; do
@@ -425,7 +425,7 @@ jobs:
           
           # Verify RDS deletion protection is disabled
           RDS_INSTANCES_CHECK=$(aws rds describe-db-instances \
-            --query "DBInstances[?contains(DBInstanceIdentifier,'{{projectName}}-${{ env.ENVIRONMENT }}')].DBInstanceIdentifier" \
+            --query "DBInstances[?contains(DBInstanceIdentifier,'{{projectName}}-{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}')].DBInstanceIdentifier" \
             --output text 2>/dev/null || true)
           
           for DB_INSTANCE in $RDS_INSTANCES_CHECK; do
@@ -552,7 +552,7 @@ jobs:
               echo "🎯 Destroy attempt $DESTROY_ATTEMPT/$MAX_DESTROY_ATTEMPTS"
               
               set +e
-              DESTROY_OUTPUT=$(terraform destroy -auto-approve -var-file=environments/${{ env.ENVIRONMENT }}.tfvars -input=false 2>&1)
+              DESTROY_OUTPUT=$(terraform destroy -auto-approve -var-file=environments/{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}.tfvars -input=false 2>&1)
               DESTROY_EXIT_CODE=$?
               set -e
               
@@ -639,8 +639,8 @@ jobs:
           # Set admin credentials for this step
           echo "Current ACCESS KEY ID: ${AWS_ACCESS_KEY_ID:0:10} Expected: {{adminUser}}"
           export AWS_ACCESS_KEY_ID={{adminUser}}
-          export AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_ADMIN_KEY }}"
-          export AWS_DEFAULT_REGION="${{ env.AWS_REGION }}"
+          export AWS_SECRET_ACCESS_KEY="{{{githubVarsOpen}}} secrets.AWS_ADMIN_KEY  {{{githubVarsClose}}}"
+          export AWS_DEFAULT_REGION="{{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}}"
           unset AWS_SESSION_TOKEN
           
           echo "🧹 Phase 3: Enhanced comprehensive AWS resource cleanup..."
@@ -665,7 +665,7 @@ jobs:
             echo "  🔍 Force cleaning $description..."
             case "$resource_type" in
               "cloudfront")
-                DISTRIBUTIONS=$(aws cloudfront list-distributions --query "DistributionList.Items[?Comment=='{{projectName}} ${{ env.ENVIRONMENT }} client distribution'].Id" --output text 2>/dev/null || true)
+                DISTRIBUTIONS=$(aws cloudfront list-distributions --query "DistributionList.Items[?Comment=='{{projectName}} {{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}} client distribution'].Id" --output text 2>/dev/null || true)
                 
                 # Handle case where no distributions are found (returns "None")
                 if [ "$DISTRIBUTIONS" = "None" ] || [ -z "$DISTRIBUTIONS" ]; then
@@ -715,7 +715,7 @@ jobs:
                 echo "    🔍 Scanning for ALL project resources..."
                 
                 # Delete all S3 buckets matching pattern
-                aws s3 ls | grep "{{projectName}}-${{ env.ENVIRONMENT }}" | while read bucket; do
+                aws s3 ls | grep "{{projectName}}-{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}" | while read bucket; do
                   BUCKET_NAME=$(echo "$bucket" | awk '{print $3}')
                   if [ -n "$BUCKET_NAME" ]; then
                     echo "    🗑️ Found and deleting S3 bucket: $BUCKET_NAME"
@@ -725,7 +725,7 @@ jobs:
                 done
                 
                 # Delete all ASGs matching pattern
-                ASGS=$(aws autoscaling describe-auto-scaling-groups --query "AutoScalingGroups[?contains(AutoScalingGroupName, '{{projectName}}-${{ env.ENVIRONMENT }}')].AutoScalingGroupName" --output text 2>/dev/null || true)
+                ASGS=$(aws autoscaling describe-auto-scaling-groups --query "AutoScalingGroups[?contains(AutoScalingGroupName, '{{projectName}}-{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}')].AutoScalingGroupName" --output text 2>/dev/null || true)
                 if [ "$ASGS" != "None" ] && [ -n "$ASGS" ]; then
                   for asg in $ASGS; do
                     if [ -n "$asg" ] && [ "$asg" != "None" ]; then
@@ -736,7 +736,7 @@ jobs:
                 fi
                 
                 # Delete all RDS instances matching pattern
-                RDS_INSTANCES=$(aws rds describe-db-instances --query "DBInstances[?contains(DBInstanceIdentifier, '{{projectName}}-${{ env.ENVIRONMENT }}')].DBInstanceIdentifier" --output text 2>/dev/null || true)
+                RDS_INSTANCES=$(aws rds describe-db-instances --query "DBInstances[?contains(DBInstanceIdentifier, '{{projectName}}-{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}')].DBInstanceIdentifier" --output text 2>/dev/null || true)
                 if [ "$RDS_INSTANCES" != "None" ] && [ -n "$RDS_INSTANCES" ]; then
                   for db in $RDS_INSTANCES; do
                     if [ -n "$db" ] && [ "$db" != "None" ]; then
@@ -747,7 +747,7 @@ jobs:
                 fi
                 
                 # Delete all ALBs matching pattern
-                ALBS=$(aws elbv2 describe-load-balancers --query "LoadBalancers[?contains(LoadBalancerName, '{{projectName}}-${{ env.ENVIRONMENT }}')].LoadBalancerArn" --output text 2>/dev/null || true)
+                ALBS=$(aws elbv2 describe-load-balancers --query "LoadBalancers[?contains(LoadBalancerName, '{{projectName}}-{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}')].LoadBalancerArn" --output text 2>/dev/null || true)
                 if [ "$ALBS" != "None" ] && [ -n "$ALBS" ]; then
                   for alb in $ALBS; do
                     if [ -n "$alb" ] && [ "$alb" != "None" ]; then
@@ -764,10 +764,10 @@ jobs:
           
           # Clean specific known resources first
           force_cleanup_resource "cloudfront" "" "CloudFront distributions"
-          force_cleanup_resource "asg" "{{projectName}}-${{ env.ENVIRONMENT }}-asg" "Auto Scaling Group"
-          force_cleanup_resource "rds-instance" "{{projectName}}-${{ env.ENVIRONMENT }}-db" "RDS instance"
-          force_cleanup_resource "s3-bucket" "{{projectName}}-${{ env.ENVIRONMENT }}-client-bucket" "Client S3 bucket"
-          force_cleanup_resource "s3-bucket" "{{projectName}}-${{ env.ENVIRONMENT }}-ops" "Ops S3 bucket"
+          force_cleanup_resource "asg" "{{projectName}}-{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}-asg" "Auto Scaling Group"
+          force_cleanup_resource "rds-instance" "{{projectName}}-{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}-db" "RDS instance"
+          force_cleanup_resource "s3-bucket" "{{projectName}}-{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}-client-bucket" "Client S3 bucket"
+          force_cleanup_resource "s3-bucket" "{{projectName}}-{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}-ops" "Ops S3 bucket"
           
           # Comprehensive sweep for any remaining resources
           force_cleanup_resource "all-resources" "" "All remaining project resources"
@@ -780,7 +780,7 @@ jobs:
             cd ops/helper
             chmod +x cleanup-manual.sh
             # Ensure the cleanup script uses admin credentials
-            AWS_ACCESS_KEY_ID={{adminUser}} AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_ADMIN_KEY }}" AWS_DEFAULT_REGION="${{ env.AWS_REGION }}" ./cleanup-manual.sh ${{ env.ENVIRONMENT }} 2>/dev/null || true
+            AWS_ACCESS_KEY_ID={{adminUser}} AWS_SECRET_ACCESS_KEY="{{{githubVarsOpen}}} secrets.AWS_ADMIN_KEY  {{{githubVarsClose}}}" AWS_DEFAULT_REGION="{{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}}" ./cleanup-manual.sh {{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}} 2>/dev/null || true
             echo "✅ Additional cleanup script completed!"
           fi
           
@@ -795,8 +795,8 @@ jobs:
           # Set admin credentials for this step
           echo "Current ACCESS KEY ID: ${AWS_ACCESS_KEY_ID:0:10} Expected: {{adminUser}}"
           export AWS_ACCESS_KEY_ID={{adminUser}}
-          export AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_ADMIN_KEY }}"
-          export AWS_DEFAULT_REGION="${{ env.AWS_REGION }}"
+          export AWS_SECRET_ACCESS_KEY="{{{githubVarsOpen}}} secrets.AWS_ADMIN_KEY  {{{githubVarsClose}}}"
+          export AWS_DEFAULT_REGION="{{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}}"
           unset AWS_SESSION_TOKEN
           
           echo "🧹 Phase 3: Enhanced comprehensive AWS resource cleanup..."
@@ -833,8 +833,8 @@ jobs:
           # Set admin credentials for this step
           echo "Current ACCESS KEY ID: ${AWS_ACCESS_KEY_ID:0:10} Expected: {{adminUser}}"
           export AWS_ACCESS_KEY_ID={{adminUser}}
-          export AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_ADMIN_KEY }}"
-          export AWS_DEFAULT_REGION="${{ env.AWS_REGION }}"
+          export AWS_SECRET_ACCESS_KEY="{{{githubVarsOpen}}} secrets.AWS_ADMIN_KEY  {{{githubVarsClose}}}"
+          export AWS_DEFAULT_REGION="{{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}}"
           unset AWS_SESSION_TOKEN
           
           echo "🔍 Performing final verification of cleanup completion..."
@@ -849,27 +849,27 @@ jobs:
           REMAINING_RESOURCES=0
           
           # Check S3 buckets
-          if aws s3 ls | grep "{{projectName}}-${{ env.ENVIRONMENT }}" 2>/dev/null; then
+          if aws s3 ls | grep "{{projectName}}-{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}" 2>/dev/null; then
             echo "⚠️ Some S3 buckets may still exist"
             REMAINING_RESOURCES=$((REMAINING_RESOURCES + 1))
           fi
           
           # Check RDS instances
-          RDS_CHECK=$(aws rds describe-db-instances --query "DBInstances[?contains(DBInstanceIdentifier, '{{projectName}}-${{ env.ENVIRONMENT }}')]" --output text 2>/dev/null || true)
+          RDS_CHECK=$(aws rds describe-db-instances --query "DBInstances[?contains(DBInstanceIdentifier, '{{projectName}}-{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}')]" --output text 2>/dev/null || true)
           if [ "$RDS_CHECK" != "None" ] && [ -n "$RDS_CHECK" ] && [ "$RDS_CHECK" != "[]" ]; then
             echo "⚠️ Some RDS instances may still exist"
             REMAINING_RESOURCES=$((REMAINING_RESOURCES + 1))
           fi
           
           # Check ASGs
-          ASG_CHECK=$(aws autoscaling describe-auto-scaling-groups --query "AutoScalingGroups[?contains(AutoScalingGroupName, '{{projectName}}-${{ env.ENVIRONMENT }}')]" --output text 2>/dev/null || true)
+          ASG_CHECK=$(aws autoscaling describe-auto-scaling-groups --query "AutoScalingGroups[?contains(AutoScalingGroupName, '{{projectName}}-{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}')]" --output text 2>/dev/null || true)
           if [ "$ASG_CHECK" != "None" ] && [ -n "$ASG_CHECK" ] && [ "$ASG_CHECK" != "[]" ]; then
             echo "⚠️ Some Auto Scaling Groups may still exist"
             REMAINING_RESOURCES=$((REMAINING_RESOURCES + 1))
           fi
           
           # Check ALBs
-          ALB_CHECK=$(aws elbv2 describe-load-balancers --query "LoadBalancers[?contains(LoadBalancerName, '{{projectName}}-${{ env.ENVIRONMENT }}')]" --output text 2>/dev/null || true)
+          ALB_CHECK=$(aws elbv2 describe-load-balancers --query "LoadBalancers[?contains(LoadBalancerName, '{{projectName}}-{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}')]" --output text 2>/dev/null || true)
           if [ "$ALB_CHECK" != "None" ] && [ -n "$ALB_CHECK" ] && [ "$ALB_CHECK" != "[]" ]; then
             echo "⚠️ Some Load Balancers may still exist"
             REMAINING_RESOURCES=$((REMAINING_RESOURCES + 1))
@@ -879,8 +879,8 @@ jobs:
           if [ $REMAINING_RESOURCES -eq 0 ]; then
             echo "## ✅ Complete Infrastructure Destruction Successful" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Environment:** ${{ env.ENVIRONMENT }}" >> $GITHUB_STEP_SUMMARY
-            echo "**Branch:** ${{ env.BRANCH }}" >> $GITHUB_STEP_SUMMARY
+            echo "**Environment:** {{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}" >> $GITHUB_STEP_SUMMARY
+            echo "**Branch:** {{{githubVarsOpen}}} env.BRANCH  {{{githubVarsClose}}}" >> $GITHUB_STEP_SUMMARY
             echo "**Status:** All resources successfully removed" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "### ✅ Cleanup Results:" >> $GITHUB_STEP_SUMMARY
@@ -897,21 +897,21 @@ jobs:
           else
             echo "## ⚠️ Infrastructure Destruction Completed with Warnings" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Environment:** ${{ env.ENVIRONMENT }}" >> $GITHUB_STEP_SUMMARY
-            echo "**Branch:** ${{ env.BRANCH }}" >> $GITHUB_STEP_SUMMARY
+            echo "**Environment:** {{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}" >> $GITHUB_STEP_SUMMARY
+            echo "**Branch:** {{{githubVarsOpen}}} env.BRANCH  {{{githubVarsClose}}}" >> $GITHUB_STEP_SUMMARY
             echo "**Status:** Cleanup completed but $REMAINING_RESOURCES resource types may still exist" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "### ⚠️ Manual Verification Required:" >> $GITHUB_STEP_SUMMARY
-            echo "1. **Check AWS Console** for any remaining resources in ${{ env.ENVIRONMENT }} environment" >> $GITHUB_STEP_SUMMARY
+            echo "1. **Check AWS Console** for any remaining resources in {{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}} environment" >> $GITHUB_STEP_SUMMARY
             echo "2. **Manually delete** any remaining resources to avoid costs" >> $GITHUB_STEP_SUMMARY
             echo "3. **Verify CloudFront distributions** - they take 15+ minutes to delete" >> $GITHUB_STEP_SUMMARY
             echo "4. **Check IAM roles and policies** for any orphaned resources" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "### 🔍 Resources to Check:" >> $GITHUB_STEP_SUMMARY
-            echo "- S3 buckets starting with {{projectName}}-${{ env.ENVIRONMENT }}" >> $GITHUB_STEP_SUMMARY
-            echo "- RDS instances containing {{projectName}}-${{ env.ENVIRONMENT }}" >> $GITHUB_STEP_SUMMARY
-            echo "- Auto Scaling Groups with {{projectName}}-${{ env.ENVIRONMENT }}" >> $GITHUB_STEP_SUMMARY
-            echo "- Load Balancers with {{projectName}}-${{ env.ENVIRONMENT }}" >> $GITHUB_STEP_SUMMARY
+            echo "- S3 buckets starting with {{projectName}}-{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}" >> $GITHUB_STEP_SUMMARY
+            echo "- RDS instances containing {{projectName}}-{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}" >> $GITHUB_STEP_SUMMARY
+            echo "- Auto Scaling Groups with {{projectName}}-{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}" >> $GITHUB_STEP_SUMMARY
+            echo "- Load Balancers with {{projectName}}-{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}" >> $GITHUB_STEP_SUMMARY
             echo "- CloudFront distributions (may still be disabling)" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "💰 **Important:** Manual cleanup prevents unexpected AWS charges" >> $GITHUB_STEP_SUMMARY

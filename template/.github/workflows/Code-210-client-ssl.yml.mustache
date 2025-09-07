@@ -22,35 +22,35 @@ jobs:
 
       - name: Env setup
         run: |
-          if [[ "${{ github.ref_name }}" != "main" && "${{ github.ref_name }}" != "dev" ]]; then
+          if [[ "{{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" != "main" && "{{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" != "dev" ]]; then
             echo "⚠️ Workflow only supports 'main' or 'dev' branches"
-            echo "Current branch: ${{ github.ref_name }}"
+            echo "Current branch: {{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}"
             echo "Exiting with no-op"
             exit 0
           fi
           
           # Set environment variables
-          echo "BRANCH=${{ github.ref_name }}" >> $GITHUB_ENV
-          if [ "${{ github.ref_name }}" = "main" ]; then
+          echo "BRANCH={{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" >> $GITHUB_ENV
+          if [ "{{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" = "main" ]; then
             echo "ENVIRONMENT=prod" >> $GITHUB_ENV
           else
             echo "ENVIRONMENT=test" >> $GITHUB_ENV
           fi
           
-          echo "✅ Environment setup completed: ${{ github.ref_name }}"
+          echo "✅ Environment setup completed: {{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}"
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::{{accountId}}:role/{{projectName}}-terraform-role
-          aws-region: ${{ env.AWS_REGION }}
+          aws-region: {{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}}
 
       - name: Configure CloudFront Alternate Domain
         run: |
-          echo "🌐 Configuring CloudFront alternate domain for {{projectName}} ${{ env.ENVIRONMENT }}..."
+          echo "🌐 Configuring CloudFront alternate domain for {{projectName}} {{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}..."
           
           PROJECT_NAME="{{projectName}}"
-          ENVIRONMENT="${{ env.ENVIRONMENT }}"
+          ENVIRONMENT="{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}"
           
           # Domain construction with environment-specific prefix
           if [ "${ENVIRONMENT}" = "prod" ]; then
@@ -230,7 +230,7 @@ jobs:
             --if-match "$ETAG"
           
           echo "⏳ Waiting for distribution update to deploy (this can take 15-20 minutes)..."
-          echo "💡 You can monitor progress in AWS Console: https://console.aws.amazon.com/cloudfront/home?region=${{ env.AWS_REGION }}#distribution-settings:$DISTRIBUTION_ID"
+          echo "💡 You can monitor progress in AWS Console: https://console.aws.amazon.com/cloudfront/home?region={{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}}#distribution-settings:$DISTRIBUTION_ID"
           
           # Check deployment status periodically with timeout
           WAIT_COUNT=0
@@ -257,7 +257,7 @@ jobs:
           if [ $WAIT_COUNT -ge $MAX_WAIT ]; then
             echo "⚠️ Wait timed out after ~20 minutes, but update was initiated successfully"
             echo "Distribution will continue deploying in the background"
-            echo "Check AWS Console for final status: https://console.aws.amazon.com/cloudfront/home?region=${{ env.AWS_REGION }}#distribution-settings:$DISTRIBUTION_ID"
+            echo "Check AWS Console for final status: https://console.aws.amazon.com/cloudfront/home?region={{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}}#distribution-settings:$DISTRIBUTION_ID"
           fi
           
           echo "✅ CloudFront alternate domain configuration completed!"
@@ -279,20 +279,20 @@ jobs:
           echo "🔍 Checking for DNS provider API key..."
           
           # Check if DNS_PROVIDER_KEY secret is available
-          if [ -z "${{ secrets.DNS_PROVIDER_KEY }}" ]; then
+          if [ -z "{{{githubVarsOpen}}} secrets.DNS_PROVIDER_KEY  {{{githubVarsClose}}}" ]; then
             echo "⚠️ No DNS_PROVIDER_KEY secret found. Skipping DNS management."
             exit 0
           fi
           
           # Check if DNS_PROVIDER is set and supported
-          if [ -z "${{ env.DNS_PROVIDER }}" ]; then
+          if [ -z "{{{githubVarsOpen}}} env.DNS_PROVIDER  {{{githubVarsClose}}}" ]; then
             echo "⚠️ DNS_PROVIDER environment variable not set. Skipping DNS management."
             exit 0
           fi
           
           # Currently only support Cloudflare
-          if [ "${{ env.DNS_PROVIDER }}" != "cloudflare" ]; then
-            echo "⚠️ DNS provider '${{ env.DNS_PROVIDER }}' not supported. Currently only 'cloudflare' is supported."
+          if [ "{{{githubVarsOpen}}} env.DNS_PROVIDER  {{{githubVarsClose}}}" != "cloudflare" ]; then
+            echo "⚠️ DNS provider '{{{githubVarsOpen}}} env.DNS_PROVIDER  {{{githubVarsClose}}}' not supported. Currently only 'cloudflare' is supported."
             exit 0
           fi
           
@@ -301,7 +301,7 @@ jobs:
           
           # Get CloudFront domain from the distribution
           echo "🔍 Getting CloudFront domain name..."
-          DISTRIBUTION_ID="${{ env.DISTRIBUTION_ID }}"
+          DISTRIBUTION_ID="{{{githubVarsOpen}}} env.DISTRIBUTION_ID  {{{githubVarsClose}}}"
           CLOUDFRONT_DOMAIN=$(aws cloudfront get-distribution --id "$DISTRIBUTION_ID" \
             --query 'Distribution.DomainName' --output text 2>/dev/null || echo "")
           
@@ -472,7 +472,7 @@ jobs:
           # Test Cloudflare API connectivity
           echo "🔍 Testing Cloudflare API connectivity..."
           test_response=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones?name=$DOMAIN_BASE" \
-            -H "Authorization: Bearer ${{ secrets.DNS_PROVIDER_KEY }}" \
+            -H "Authorization: Bearer {{{githubVarsOpen}}} secrets.DNS_PROVIDER_KEY  {{{githubVarsClose}}}" \
             -H "Content-Type: application/json" 2>/dev/null || echo '{"success":false}')
           
           if echo "$test_response" | jq -e '.success' >/dev/null 2>&1; then
@@ -484,13 +484,13 @@ jobs:
           
           # Check if CNAME record exists
           echo "🔍 Checking if CNAME record exists..."
-          record_exists=$(check_cloudflare_record "$DOMAIN_BASE" "$UI_DOMAIN" "${{ secrets.DNS_PROVIDER_KEY }}")
+          record_exists=$(check_cloudflare_record "$DOMAIN_BASE" "$UI_DOMAIN" "{{{githubVarsOpen}}} secrets.DNS_PROVIDER_KEY  {{{githubVarsClose}}}")
           
           if [ "$record_exists" = "true" ]; then
             echo "✅ CNAME record exists, checking if update is needed..."
             
             # Get existing record info
-            record_info=$(get_cloudflare_record_info "$DOMAIN_BASE" "$UI_DOMAIN" "${{ secrets.DNS_PROVIDER_KEY }}")
+            record_info=$(get_cloudflare_record_info "$DOMAIN_BASE" "$UI_DOMAIN" "{{{githubVarsOpen}}} secrets.DNS_PROVIDER_KEY  {{{githubVarsClose}}}")
             
             if [ "$record_info" != "false" ]; then
               existing_value=$(echo "$record_info" | jq -r '.content' 2>/dev/null)
@@ -503,15 +503,15 @@ jobs:
                 echo "✅ CNAME record is already up to date"
               else
                 echo "🔄 Updating CNAME record..."
-                update_cloudflare_record "$DOMAIN_BASE" "$record_id" "$UI_DOMAIN" "$CLOUDFRONT_DOMAIN" "${{ secrets.DNS_PROVIDER_KEY }}"
+                update_cloudflare_record "$DOMAIN_BASE" "$record_id" "$UI_DOMAIN" "$CLOUDFRONT_DOMAIN" "{{{githubVarsOpen}}} secrets.DNS_PROVIDER_KEY  {{{githubVarsClose}}}"
               fi
             else
               echo "⚠️ Could not get existing record info, creating new record..."
-              add_cloudflare_record "$DOMAIN_BASE" "$UI_DOMAIN" "$CLOUDFRONT_DOMAIN" "${{ secrets.DNS_PROVIDER_KEY }}"
+              add_cloudflare_record "$DOMAIN_BASE" "$UI_DOMAIN" "$CLOUDFRONT_DOMAIN" "{{{githubVarsOpen}}} secrets.DNS_PROVIDER_KEY  {{{githubVarsClose}}}"
             fi
           else
             echo "➕ Creating new CNAME record..."
-            add_cloudflare_record "$DOMAIN_BASE" "$UI_DOMAIN" "$CLOUDFRONT_DOMAIN" "${{ secrets.DNS_PROVIDER_KEY }}"
+            add_cloudflare_record "$DOMAIN_BASE" "$UI_DOMAIN" "$CLOUDFRONT_DOMAIN" "{{{githubVarsOpen}}} secrets.DNS_PROVIDER_KEY  {{{githubVarsClose}}}"
           fi
           
           echo "✅ Cloudflare DNS management completed!"

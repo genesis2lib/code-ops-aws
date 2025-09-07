@@ -16,8 +16,8 @@ jobs:
     name: Terraform Plan
     runs-on: ubuntu-latest
     outputs:
-      environment: ${{ steps.setup.outputs.environment }}
-      tf-plan-exists: ${{ steps.plan.outputs.exitcode == 0 }}
+      environment: {{{githubVarsOpen}}} steps.setup.outputs.environment  {{{githubVarsClose}}}
+      tf-plan-exists: {{{githubVarsOpen}}} steps.plan.outputs.exitcode == 0  {{{githubVarsClose}}}
     
     steps:
       - name: Checkout code
@@ -25,40 +25,40 @@ jobs:
 
       - name: Env setup
         run: |
-          if [[ "${{ github.ref_name }}" != "main" && "${{ github.ref_name }}" != "dev" ]]; then
+          if [[ "{{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" != "main" && "{{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" != "dev" ]]; then
             echo "⚠️ Workflow only supports 'main' or 'dev' branches"
-            echo "Current branch: ${{ github.ref_name }}"
+            echo "Current branch: {{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}"
             echo "Exiting with no-op"
             exit 0
           fi
           
           # Set environment variables
-          echo "BRANCH=${{ github.ref_name }}" >> $GITHUB_ENV
-          if [ "${{ github.ref_name }}" = "main" ]; then
+          echo "BRANCH={{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" >> $GITHUB_ENV
+          if [ "{{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" = "main" ]; then
             echo "ENVIRONMENT=prod" >> $GITHUB_ENV
           else
             echo "ENVIRONMENT=test" >> $GITHUB_ENV
           fi
           
-          echo "✅ Environment setup completed: ${{ github.ref_name }}"
+          echo "✅ Environment setup completed: {{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}"
 
       - name: Setup Environment
         id: setup
         run: |
           # Environment is already set in workflow env from branch
-          echo "environment=${{ env.ENVIRONMENT }}" >> $GITHUB_OUTPUT
-          echo "Environment: ${{ env.ENVIRONMENT }}"
+          echo "environment={{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}" >> $GITHUB_OUTPUT
+          echo "Environment: {{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}"
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::{{accountId}}:role/{{projectName}}-terraform-role
-          aws-region: ${{ env.AWS_REGION }}
+          aws-region: {{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}}
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: ${{ env.TF_VERSION }}
+          terraform_version: {{{githubVarsOpen}}} env.TF_VERSION  {{{githubVarsClose}}}
           terraform_wrapper: false
 
       - name: Terraform Init
@@ -188,14 +188,14 @@ jobs:
           echo "🗓️ Running Terraform plan..."
           
           # Build plan command
-          PLAN_CMD="terraform plan -var-file=\"environments/${{ env.ENVIRONMENT }}.tfvars\" -out=tfplan-${{ env.ENVIRONMENT }} -no-color -input=false"
+          PLAN_CMD="terraform plan -var-file=\"environments/{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}.tfvars\" -out=tfplan-{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}} -no-color -input=false"
           
           echo "Executing: $PLAN_CMD"
           eval $PLAN_CMD || {
             echo "🔄 First plan attempt failed, retrying with safety flags..."
             terraform plan \
-              -var-file="environments/${{ env.ENVIRONMENT }}.tfvars" \
-              -out=tfplan-${{ env.ENVIRONMENT }} \
+              -var-file="environments/{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}.tfvars" \
+              -out=tfplan-{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}} \
               -no-color \
               -input=false \
               -refresh=false || {
@@ -205,7 +205,7 @@ jobs:
           }
           
           # Show plan summary
-          terraform show -no-color tfplan-${{ env.ENVIRONMENT }}
+          terraform show -no-color tfplan-{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}
         continue-on-error: true
 
 
@@ -213,8 +213,8 @@ jobs:
         if: steps.plan.outputs.exitcode == 0
         uses: actions/upload-artifact@v4
         with:
-          name: tfplan-${{ env.ENVIRONMENT }}
-          path: ops/terraform/tfplan-${{ env.ENVIRONMENT }}
+          name: tfplan-{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}
+          path: ops/terraform/tfplan-{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}
           retention-days: 1
 
       - name: Plan Status
@@ -225,7 +225,7 @@ jobs:
     name: Terraform Apply
     runs-on: ubuntu-latest
     needs: plan
-    environment: ${{ needs.plan.outputs.environment }}
+    environment: {{{githubVarsOpen}}} needs.plan.outputs.environment  {{{githubVarsClose}}}
     
     steps:
       - name: Checkout code
@@ -233,39 +233,39 @@ jobs:
 
       - name: Env setup
         run: |
-          if [[ "${{ github.ref_name }}" != "main" && "${{ github.ref_name }}" != "dev" ]]; then
+          if [[ "{{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" != "main" && "{{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" != "dev" ]]; then
             echo "⚠️ Workflow only supports 'main' or 'dev' branches"
-            echo "Current branch: ${{ github.ref_name }}"
+            echo "Current branch: {{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}"
             echo "Exiting with no-op"
             exit 0
           fi
           
           # Set environment variables
-          echo "BRANCH=${{ github.ref_name }}" >> $GITHUB_ENV
-          if [ "${{ github.ref_name }}" = "main" ]; then
+          echo "BRANCH={{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" >> $GITHUB_ENV
+          if [ "{{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" = "main" ]; then
             echo "ENVIRONMENT=prod" >> $GITHUB_ENV
           else
             echo "ENVIRONMENT=test" >> $GITHUB_ENV
           fi
           
-          echo "✅ Environment setup completed: ${{ github.ref_name }}"
+          echo "✅ Environment setup completed: {{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}"
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::{{accountId}}:role/{{projectName}}-terraform-role
-          aws-region: ${{ env.AWS_REGION }}
+          aws-region: {{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}}
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: ${{ env.TF_VERSION }}
+          terraform_version: {{{githubVarsOpen}}} env.TF_VERSION  {{{githubVarsClose}}}
           terraform_wrapper: false
 
       - name: Download Terraform Plan
         uses: actions/download-artifact@v4
         with:
-          name: tfplan-${{ env.ENVIRONMENT }}
+          name: tfplan-{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}
           path: ops/terraform/
 
       - name: Check and Generate SSH Keys
@@ -347,7 +347,7 @@ jobs:
             
             # Update tfvars with certificate ARN
             echo "📝 Updating tfvars with certificate ARN..."
-            sed -i "s|certificate_arn = \"\"| certificate_arn = \"$CERT_ARN\"|g" "ops/terraform/environments/${{ env.ENVIRONMENT }}.tfvars"
+            sed -i "s|certificate_arn = \"\"| certificate_arn = \"$CERT_ARN\"|g" "ops/terraform/environments/{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}.tfvars"
             
             echo "✅ Certificate ARN set in tfvars"
           else
@@ -429,7 +429,7 @@ jobs:
           
           # Apply terraform with error handling
           set +e
-          APPLY_OUTPUT=$(terraform apply -input=false -auto-approve tfplan-${{ env.ENVIRONMENT }} 2>&1)
+          APPLY_OUTPUT=$(terraform apply -input=false -auto-approve tfplan-{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}} 2>&1)
           APPLY_EXIT_CODE=$?
           set -e
           
@@ -517,7 +517,7 @@ jobs:
         continue-on-error: true
         run: |
           echo "📋 Copying EC2 setup scripts to S3..."
-          OPS_BUCKET="${{ steps.outputs.outputs.ops_bucket_name }}"
+          OPS_BUCKET="{{{githubVarsOpen}}} steps.outputs.outputs.ops_bucket_name  {{{githubVarsClose}}}"
           
           if [ -z "$OPS_BUCKET" ] || [ "$OPS_BUCKET" = "not-available" ]; then
             echo "❌ Could not get ops bucket name from Terraform outputs - skipping script upload"
@@ -526,29 +526,29 @@ jobs:
           fi
           
           echo "📁 Copying ops/ec2-setup/ directory to s3://${OPS_BUCKET}/ec2-setup/"
-          aws s3 cp ops/ec2-setup/ "s3://${OPS_BUCKET}/ec2-setup/" --recursive --region ${{ env.AWS_REGION }}
+          aws s3 cp ops/ec2-setup/ "s3://${OPS_BUCKET}/ec2-setup/" --recursive --region {{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}}
           
           echo "✅ EC2 setup scripts copied to S3 successfully"
           echo "🔍 Verifying uploaded files:"
-          aws s3 ls "s3://${OPS_BUCKET}/ec2-setup/" --region ${{ env.AWS_REGION }}
+          aws s3 ls "s3://${OPS_BUCKET}/ec2-setup/" --region {{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}}
 
       - name: Deployment Summary
         if: always()
         run: |
           # Check if deployment was successful
-          if [ "${{ job.status }}" = "success" ] && [ "${{ steps.apply.outputs.apply_success }}" = "true" ]; then
+          if [ "{{{githubVarsOpen}}} job.status  {{{githubVarsClose}}}" = "success" ] && [ "{{{githubVarsOpen}}} steps.apply.outputs.apply_success  {{{githubVarsClose}}}" = "true" ]; then
             echo "## 🎉 Deployment Successful!" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Environment:** ${{ env.ENVIRONMENT }}" >> $GITHUB_STEP_SUMMARY
-            echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+            echo "**Environment:** {{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}" >> $GITHUB_STEP_SUMMARY
+            echo "**Branch:** {{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "### 🔑 Key Infrastructure Details:" >> $GITHUB_STEP_SUMMARY
-            echo "- **UI Domain:** ${{ steps.outputs.outputs.ui_domain }}" >> $GITHUB_STEP_SUMMARY
-            echo "- **CloudFront Domain:** ${{ steps.outputs.outputs.cloudfront_domain_name }}" >> $GITHUB_STEP_SUMMARY
-            echo "- **Load Balancer DNS:** ${{ steps.outputs.outputs.load_balancer_dns_name }}" >> $GITHUB_STEP_SUMMARY
-            echo "- **S3 Client Bucket:** ${{ steps.outputs.outputs.s3_bucket_name }}" >> $GITHUB_STEP_SUMMARY
-            echo "- **Ops Bucket:** ${{ steps.outputs.outputs.ops_bucket_name }}" >> $GITHUB_STEP_SUMMARY
-            echo "- **Auto Scaling Group:** ${{ steps.outputs.outputs.autoscaling_group_name }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **UI Domain:** {{{githubVarsOpen}}} steps.outputs.outputs.ui_domain  {{{githubVarsClose}}}" >> $GITHUB_STEP_SUMMARY
+            echo "- **CloudFront Domain:** {{{githubVarsOpen}}} steps.outputs.outputs.cloudfront_domain_name  {{{githubVarsClose}}}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Load Balancer DNS:** {{{githubVarsOpen}}} steps.outputs.outputs.load_balancer_dns_name  {{{githubVarsClose}}}" >> $GITHUB_STEP_SUMMARY
+            echo "- **S3 Client Bucket:** {{{githubVarsOpen}}} steps.outputs.outputs.s3_bucket_name  {{{githubVarsClose}}}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Ops Bucket:** {{{githubVarsOpen}}} steps.outputs.outputs.ops_bucket_name  {{{githubVarsClose}}}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Auto Scaling Group:** {{{githubVarsOpen}}} steps.outputs.outputs.autoscaling_group_name  {{{githubVarsClose}}}" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "### 🚀 Next Steps:" >> $GITHUB_STEP_SUMMARY
             echo "1. Verify SSL certificate DNS validation if needed" >> $GITHUB_STEP_SUMMARY
@@ -556,11 +556,11 @@ jobs:
             echo "3. Monitor infrastructure health" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "Infrastructure is ready for use! 🎯" >> $GITHUB_STEP_SUMMARY
-          elif [ "${{ steps.apply.outputs.partial_deployment }}" = "true" ]; then
+          elif [ "{{{githubVarsOpen}}} steps.apply.outputs.partial_deployment  {{{githubVarsClose}}}" = "true" ]; then
             echo "## ⚠️ Partial Deployment Detected" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Environment:** ${{ env.ENVIRONMENT }}" >> $GITHUB_STEP_SUMMARY
-            echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+            echo "**Environment:** {{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}" >> $GITHUB_STEP_SUMMARY
+            echo "**Branch:** {{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" >> $GITHUB_STEP_SUMMARY
             echo "**Status:** Some resources may have been created" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "### 🚨 IMMEDIATE ACTION REQUIRED:" >> $GITHUB_STEP_SUMMARY
@@ -574,8 +574,8 @@ jobs:
           else
             echo "## ❌ Deployment Failed" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Environment:** ${{ env.ENVIRONMENT }}" >> $GITHUB_STEP_SUMMARY
-            echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+            echo "**Environment:** {{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}" >> $GITHUB_STEP_SUMMARY
+            echo "**Branch:** {{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "### 🔧 Troubleshooting:" >> $GITHUB_STEP_SUMMARY
             echo "1. Check the workflow logs for specific error details" >> $GITHUB_STEP_SUMMARY

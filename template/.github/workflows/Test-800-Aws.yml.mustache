@@ -20,29 +20,29 @@ jobs:
 
       - name: Env setup
         run: |
-          if [[ "${{ github.ref_name }}" != "main" && "${{ github.ref_name }}" != "dev" ]]; then
+          if [[ "{{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" != "main" && "{{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" != "dev" ]]; then
             echo "⚠️ Workflow only supports 'main' or 'dev' branches"
-            echo "Current branch: ${{ github.ref_name }}"
+            echo "Current branch: {{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}"
             echo "Exiting with no-op"
             exit 0
           fi
           
           # Set environment variables
-          echo "BRANCH=${{ github.ref_name }}" >> $GITHUB_ENV
-          if [ "${{ github.ref_name }}" = "main" ]; then
+          echo "BRANCH={{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" >> $GITHUB_ENV
+          if [ "{{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" = "main" ]; then
             echo "ENVIRONMENT=prod" >> $GITHUB_ENV
           else
             echo "ENVIRONMENT=test" >> $GITHUB_ENV
           fi
           
-          echo "✅ Environment setup completed: ${{ github.ref_name }}"
+          echo "✅ Environment setup completed: {{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}"
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: {{adminUser}}
-          aws-secret-access-key: ${{ secrets.AWS_ADMIN_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+          aws-secret-access-key: {{{githubVarsOpen}}} secrets.AWS_ADMIN_KEY  {{{githubVarsClose}}}
+          aws-region: {{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}}
 
       - name: Verify AWS credentials
         run: |
@@ -56,7 +56,7 @@ jobs:
       - name: List All Project Resources
         run: |
           echo "🔍 Starting comprehensive AWS resource listing for project: {{projectName}}"
-          echo "🌍 Environment: ${{ env.ENVIRONMENT }}"
+          echo "🌍 Environment: {{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}"
           echo "🏷️ Project Tag: {{projectName}}"
           echo "📅 Timestamp: $(date)"
           echo "=========================================="
@@ -167,7 +167,7 @@ jobs:
           # List objects in project buckets
           echo "📋 S3 Bucket Contents (Project: {{projectName}})..."
           echo "------------------------------------------"
-          aws s3api list-buckets --query "Buckets[?contains(Name, '{{projectName}}-${{ env.ENVIRONMENT }}')].Name" --output text 2>/dev/null | while read bucket; do
+          aws s3api list-buckets --query "Buckets[?contains(Name, '{{projectName}}-{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}')].Name" --output text 2>/dev/null | while read bucket; do
             if [ -n "$bucket" ] && [ "$bucket" != "None" ]; then
               echo "🪣 Bucket: $bucket"
               aws s3 ls "s3://$bucket" --recursive --human-readable --summarize 2>/dev/null || echo "  ⚠️ Cannot list contents"
@@ -340,9 +340,9 @@ jobs:
           echo "📊 RESOURCE LISTING COMPLETED"
           echo "=========================================="
           echo "✅ All AWS resources have been listed"
-          echo "🌍 Region: ${{ env.AWS_REGION }}"
+          echo "🌍 Region: {{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}}"
           echo "🏷️ Project: {{projectName}}"
-          echo "🌍 Environment: ${{ env.ENVIRONMENT }}"
+          echo "🌍 Environment: {{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}"
           echo "📅 Completed: $(date)"
           echo ""
           echo "💡 Note: Some services may not be available in this region or account"
@@ -353,9 +353,9 @@ jobs:
           echo "## 📊 AWS Resource Listing Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Project:** {{projectName}}" >> $GITHUB_STEP_SUMMARY
-          echo "**Environment:** ${{ env.ENVIRONMENT }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Region:** ${{ env.AWS_REGION }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** {{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}" >> $GITHUB_STEP_SUMMARY
+          echo "**Region:** {{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** {{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" >> $GITHUB_STEP_SUMMARY
           echo "**Timestamp:** $(date)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🔍 Services Scanned:" >> $GITHUB_STEP_SUMMARY

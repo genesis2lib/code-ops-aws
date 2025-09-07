@@ -22,28 +22,28 @@ jobs:
 
       - name: Env setup
         run: |
-          if [[ "${{ github.ref_name }}" != "main" && "${{ github.ref_name }}" != "dev" ]]; then
+          if [[ "{{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" != "main" && "{{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" != "dev" ]]; then
             echo "⚠️ Workflow only supports 'main' or 'dev' branches"
-            echo "Current branch: ${{ github.ref_name }}"
+            echo "Current branch: {{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}"
             echo "Exiting with no-op"
             exit 0
           fi
           
           # Set environment variables
-          echo "BRANCH=${{ github.ref_name }}" >> $GITHUB_ENV
-          if [ "${{ github.ref_name }}" = "main" ]; then
+          echo "BRANCH={{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" >> $GITHUB_ENV
+          if [ "{{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" = "main" ]; then
             echo "ENVIRONMENT=prod" >> $GITHUB_ENV
           else
             echo "ENVIRONMENT=test" >> $GITHUB_ENV
           fi
           
-          echo "✅ Environment setup completed: ${{ github.ref_name }}"
+          echo "✅ Environment setup completed: {{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}"
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::{{accountId}}:role/{{projectName}}-terraform-role
-          aws-region: ${{ env.AWS_REGION }}
+          aws-region: {{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}}
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -54,7 +54,7 @@ jobs:
       - name: Get Terraform Outputs
         run: |
           cd ops/terraform
-          echo "🔍 Getting Terraform outputs for ${{ env.ENVIRONMENT }} environment..."
+          echo "🔍 Getting Terraform outputs for {{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}} environment..."
           
           # Initialize Terraform to access state
           terraform init -backend-config=backend-${ENVIRONMENT}.hcl -input=false
@@ -75,10 +75,10 @@ jobs:
 
       - name: Configure ALB SSL
         run: |
-          echo "🌐 Configuring ALB SSL for {{projectName}} ${{ env.ENVIRONMENT }}..."
+          echo "🌐 Configuring ALB SSL for {{projectName}} {{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}..."
           
           PROJECT_NAME="{{projectName}}"
-          ENVIRONMENT="${{ env.ENVIRONMENT }}"
+          ENVIRONMENT="{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}"
           
           # Domain construction with environment-specific prefix
           if [ "${ENVIRONMENT}" = "prod" ]; then
@@ -86,7 +86,7 @@ jobs:
           else
             API_DOMAIN="{{projectName}}-${ENVIRONMENT}-api.{{sld}}.{{tld}}"
           fi
-          ALB_DNS="${{ env.ALB_DNS }}"
+          ALB_DNS="{{{githubVarsOpen}}} env.ALB_DNS  {{{githubVarsClose}}}"
           
           echo "📋 Configuration:"
           echo "  Project: $PROJECT_NAME"
@@ -122,14 +122,14 @@ jobs:
           fi
           
           # Find ACM certificate for the domain (ALB requires certificate in same region)
-          echo "🔍 Looking for ACM certificate in ${{ env.AWS_REGION }} (ALB region)..."
+          echo "🔍 Looking for ACM certificate in {{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}} (ALB region)..."
           echo "🔍 Searching for domain: $API_DOMAIN"
           
           # Debug: List all certificates first
-          echo "🔍 DEBUG: All available certificates in ${{ env.AWS_REGION }}:"
-          aws acm list-certificates --region ${{ env.AWS_REGION }} --query "CertificateSummaryList[].{Domain:DomainName,SAN:SubjectAlternativeNameSummary,Arn:CertificateArn}" --output table || true
+          echo "🔍 DEBUG: All available certificates in {{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}}:"
+          aws acm list-certificates --region {{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}} --query "CertificateSummaryList[].{Domain:DomainName,SAN:SubjectAlternativeNameSummary,Arn:CertificateArn}" --output table || true
           
-          CERT_ARN=$(aws acm list-certificates --region ${{ env.AWS_REGION }} \
+          CERT_ARN=$(aws acm list-certificates --region {{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}} \
             --query "CertificateSummaryList[?DomainName=='$API_DOMAIN'].CertificateArn" \
             --output text 2>/dev/null | head -1 || true)
           
@@ -137,11 +137,11 @@ jobs:
           if [ -z "$CERT_ARN" ] || [ "$CERT_ARN" = "None" ]; then
             echo "🔍 Searching in Subject Alternative Names..."
             # Get all certificates and search manually
-            ALL_CERTS=$(aws acm list-certificates --region ${{ env.AWS_REGION }} --query "CertificateSummaryList[].[CertificateArn,DomainName]" --output text 2>/dev/null || true)
+            ALL_CERTS=$(aws acm list-certificates --region {{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}} --query "CertificateSummaryList[].[CertificateArn,DomainName]" --output text 2>/dev/null || true)
             while IFS=$'\t' read -r cert_arn cert_domain; do
               if [ -n "$cert_arn" ]; then
                 # Get detailed certificate info to check SAN
-                SAN_DOMAINS=$(aws acm describe-certificate --certificate-arn "$cert_arn" --region ${{ env.AWS_REGION }} \
+                SAN_DOMAINS=$(aws acm describe-certificate --certificate-arn "$cert_arn" --region {{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}} \
                   --query "Certificate.SubjectAlternativeNames" --output text 2>/dev/null || true)
                 if echo "$SAN_DOMAINS" | grep -q "$API_DOMAIN"; then
                   CERT_ARN="$cert_arn"
@@ -162,18 +162,18 @@ jobs:
             WILDCARD_DOMAIN="*.{{sld}}.{{tld}}"
             echo "🔍 Searching for wildcard: $WILDCARD_DOMAIN"
             
-            CERT_ARN=$(aws acm list-certificates --region ${{ env.AWS_REGION }} \
+            CERT_ARN=$(aws acm list-certificates --region {{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}} \
               --query "CertificateSummaryList[?DomainName=='$WILDCARD_DOMAIN'].CertificateArn" \
               --output text 2>/dev/null | head -1 || true)
             
             # If not found by domain name, search in SAN manually
             if [ -z "$CERT_ARN" ] || [ "$CERT_ARN" = "None" ]; then
               echo "🔍 Searching wildcard in Subject Alternative Names..."
-              ALL_CERTS=$(aws acm list-certificates --region ${{ env.AWS_REGION }} --query "CertificateSummaryList[].[CertificateArn,DomainName]" --output text 2>/dev/null || true)
+              ALL_CERTS=$(aws acm list-certificates --region {{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}} --query "CertificateSummaryList[].[CertificateArn,DomainName]" --output text 2>/dev/null || true)
               while IFS=$'\t' read -r cert_arn cert_domain; do
                 if [ -n "$cert_arn" ]; then
                   # Get detailed certificate info to check SAN
-                  SAN_DOMAINS=$(aws acm describe-certificate --certificate-arn "$cert_arn" --region ${{ env.AWS_REGION }} \
+                  SAN_DOMAINS=$(aws acm describe-certificate --certificate-arn "$cert_arn" --region {{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}} \
                     --query "Certificate.SubjectAlternativeNames" --output text 2>/dev/null || true)
                   if echo "$SAN_DOMAINS" | grep -q "$WILDCARD_DOMAIN"; then
                     CERT_ARN="$cert_arn"
@@ -187,12 +187,12 @@ jobs:
             echo "🔍 DEBUG: Query result for wildcard: '$CERT_ARN'"
             
             if [ -z "$CERT_ARN" ] || [ "$CERT_ARN" = "None" ]; then
-              echo "❌ No suitable certificate found in ${{ env.AWS_REGION }}. Please ensure you have a certificate for:"
+              echo "❌ No suitable certificate found in {{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}}. Please ensure you have a certificate for:"
               echo "  - $API_DOMAIN"
               echo "  - OR $WILDCARD_DOMAIN"
               echo ""
               echo "💡 To request a certificate (or run bootstrap workflow to create it):"
-              echo "aws acm request-certificate --domain-name '$API_DOMAIN' --validation-method DNS --region ${{ env.AWS_REGION }}"
+              echo "aws acm request-certificate --domain-name '$API_DOMAIN' --validation-method DNS --region {{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}}"
               exit 1
             else
               echo "✅ Found wildcard certificate: $CERT_ARN"
@@ -203,7 +203,7 @@ jobs:
           
           # Check certificate status
           echo "🔍 Checking certificate status..."
-          CERT_STATUS=$(aws acm describe-certificate --certificate-arn "$CERT_ARN" --region ${{ env.AWS_REGION }} \
+          CERT_STATUS=$(aws acm describe-certificate --certificate-arn "$CERT_ARN" --region {{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}} \
             --query 'Certificate.Status' --output text 2>/dev/null || echo "UNKNOWN")
           
           echo "Certificate status: $CERT_STATUS"
@@ -213,7 +213,7 @@ jobs:
             echo ""
             
             # Get DNS validation records
-            aws acm describe-certificate --certificate-arn "$CERT_ARN" --region ${{ env.AWS_REGION }} \
+            aws acm describe-certificate --certificate-arn "$CERT_ARN" --region {{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}} \
               --query 'Certificate.DomainValidationOptions[].ResourceRecord.{Name:Name,Type:Type,Value:Value}' \
               --output table 2>/dev/null || true
             
@@ -315,20 +315,20 @@ jobs:
           echo "🔍 Checking for DNS provider API key..."
           
           # Check if DNS_PROVIDER_KEY secret is available
-          if [ -z "${{ secrets.DNS_PROVIDER_KEY }}" ]; then
+          if [ -z "{{{githubVarsOpen}}} secrets.DNS_PROVIDER_KEY  {{{githubVarsClose}}}" ]; then
             echo "⚠️ No DNS_PROVIDER_KEY secret found. Skipping DNS management."
             exit 0
           fi
           
           # Check if DNS_PROVIDER is set and supported
-          if [ -z "${{ env.DNS_PROVIDER }}" ]; then
+          if [ -z "{{{githubVarsOpen}}} env.DNS_PROVIDER  {{{githubVarsClose}}}" ]; then
             echo "⚠️ DNS_PROVIDER environment variable not set. Skipping DNS management."
             exit 0
           fi
           
           # Currently only support Cloudflare
-          if [ "${{ env.DNS_PROVIDER }}" != "cloudflare" ]; then
-            echo "⚠️ DNS provider '${{ env.DNS_PROVIDER }}' not supported. Currently only 'cloudflare' is supported."
+          if [ "{{{githubVarsOpen}}} env.DNS_PROVIDER  {{{githubVarsClose}}}" != "cloudflare" ]; then
+            echo "⚠️ DNS provider '{{{githubVarsOpen}}} env.DNS_PROVIDER  {{{githubVarsClose}}}' not supported. Currently only 'cloudflare' is supported."
             exit 0
           fi
           
@@ -336,7 +336,7 @@ jobs:
           echo "🚀 Attempting to update Cloudflare DNS records..."
           
           # Get ALB DNS name from environment
-          ALB_DNS="${{ env.ALB_DNS }}"
+          ALB_DNS="{{{githubVarsOpen}}} env.ALB_DNS  {{{githubVarsClose}}}"
           
           if [ -z "$ALB_DNS" ]; then
             echo "❌ Could not get ALB DNS name"
@@ -498,7 +498,7 @@ jobs:
           # Test Cloudflare API connectivity
           echo "🔍 Testing Cloudflare API connectivity..."
           test_response=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones?name=$DOMAIN_BASE" \
-            -H "Authorization: Bearer ${{ secrets.DNS_PROVIDER_KEY }}" \
+            -H "Authorization: Bearer {{{githubVarsOpen}}} secrets.DNS_PROVIDER_KEY  {{{githubVarsClose}}}" \
             -H "Content-Type: application/json" 2>/dev/null || echo '{"success":false}')
           
           if echo "$test_response" | jq -e '.success' >/dev/null 2>&1; then
@@ -510,13 +510,13 @@ jobs:
           
           # Check if CNAME record exists
           echo "🔍 Checking if CNAME record exists..."
-          record_exists=$(check_cloudflare_record "$DOMAIN_BASE" "$API_DOMAIN" "${{ secrets.DNS_PROVIDER_KEY }}")
+          record_exists=$(check_cloudflare_record "$DOMAIN_BASE" "$API_DOMAIN" "{{{githubVarsOpen}}} secrets.DNS_PROVIDER_KEY  {{{githubVarsClose}}}")
           
           if [ "$record_exists" = "true" ]; then
             echo "✅ CNAME record exists, checking if update is needed..."
             
             # Get existing record info
-            record_info=$(get_cloudflare_record_info "$DOMAIN_BASE" "$API_DOMAIN" "${{ secrets.DNS_PROVIDER_KEY }}")
+            record_info=$(get_cloudflare_record_info "$DOMAIN_BASE" "$API_DOMAIN" "{{{githubVarsOpen}}} secrets.DNS_PROVIDER_KEY  {{{githubVarsClose}}}")
             
             if [ "$record_info" != "false" ]; then
               existing_value=$(echo "$record_info" | jq -r '.content' 2>/dev/null)
@@ -529,15 +529,15 @@ jobs:
                 echo "✅ CNAME record is already up to date"
               else
                 echo "🔄 Updating CNAME record..."
-                update_cloudflare_record "$DOMAIN_BASE" "$record_id" "$API_DOMAIN" "$ALB_DNS" "${{ secrets.DNS_PROVIDER_KEY }}"
+                update_cloudflare_record "$DOMAIN_BASE" "$record_id" "$API_DOMAIN" "$ALB_DNS" "{{{githubVarsOpen}}} secrets.DNS_PROVIDER_KEY  {{{githubVarsClose}}}"
               fi
             else
               echo "⚠️ Could not get existing record info, creating new record..."
-              add_cloudflare_record "$DOMAIN_BASE" "$API_DOMAIN" "$ALB_DNS" "${{ secrets.DNS_PROVIDER_KEY }}"
+              add_cloudflare_record "$DOMAIN_BASE" "$API_DOMAIN" "$ALB_DNS" "{{{githubVarsOpen}}} secrets.DNS_PROVIDER_KEY  {{{githubVarsClose}}}"
             fi
           else
             echo "➕ Creating new CNAME record..."
-            add_cloudflare_record "$DOMAIN_BASE" "$API_DOMAIN" "$ALB_DNS" "${{ secrets.DNS_PROVIDER_KEY }}"
+            add_cloudflare_record "$DOMAIN_BASE" "$API_DOMAIN" "$ALB_DNS" "{{{githubVarsOpen}}} secrets.DNS_PROVIDER_KEY  {{{githubVarsClose}}}"
           fi
           
           echo "✅ Cloudflare DNS management completed!"
