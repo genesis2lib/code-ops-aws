@@ -215,8 +215,12 @@ jobs:
             VALIDATION_DATA=$(aws acm describe-certificate --region us-east-1 --certificate-arn "$CERT_ARN" \
               --query 'Certificate.DomainValidationOptions[]' --output json)
             
-            # Check if any ResourceRecord is null
-            NULL_COUNT=$(echo "$VALIDATION_DATA" | jq '[.[] | select(.ResourceRecord == null)] | length')
+            # Check if validation data exists and if any ResourceRecord is null
+            if [ "$VALIDATION_DATA" = "null" ] || [ "$VALIDATION_DATA" = "[]" ] || [ -z "$VALIDATION_DATA" ]; then
+              NULL_COUNT=999  # Indicate that validation data is not ready
+            else
+              NULL_COUNT=$(echo "$VALIDATION_DATA" | jq '[.[] | select(.ResourceRecord == null)] | length' 2>/dev/null || echo "999")
+            fi
             
             if [ "$NULL_COUNT" -eq 0 ]; then
               echo "✅ DNS validation records are now available!"
@@ -240,12 +244,20 @@ jobs:
           echo "=================================================="
           
           # Display the validation records with better error handling
-          echo "$VALIDATION_DATA" | jq -r '.[] | 
-            if .ResourceRecord == null then
-              "Domain: \(.DomainName)\nCNAME Name: ⚠️ PENDING - check again in a few minutes\nCNAME Value: ⚠️ PENDING - check again in a few minutes\n---"
-            else
-              "Domain: \(.DomainName)\nCNAME Name: \(.ResourceRecord.Name)\nCNAME Value: \(.ResourceRecord.Value)\n---"
-            end'
+          if [ "$VALIDATION_DATA" = "null" ] || [ "$VALIDATION_DATA" = "[]" ] || [ -z "$VALIDATION_DATA" ]; then
+            echo "⚠️ DNS validation records are not yet available"
+            echo "Domain: $UI_DOMAIN"
+            echo "CNAME Name: ⚠️ PENDING - check again in a few minutes"
+            echo "CNAME Value: ⚠️ PENDING - check again in a few minutes"
+            echo "---"
+          else
+            echo "$VALIDATION_DATA" | jq -r '.[] | 
+              if .ResourceRecord == null then
+                "Domain: \(.DomainName)\nCNAME Name: ⚠️ PENDING - check again in a few minutes\nCNAME Value: ⚠️ PENDING - check again in a few minutes\n---"
+              else
+                "Domain: \(.DomainName)\nCNAME Name: \(.ResourceRecord.Name)\nCNAME Value: \(.ResourceRecord.Value)\n---"
+              end' 2>/dev/null || echo "⚠️ Error parsing validation data"
+          fi
           
           echo "=================================================="
           echo "⚠️  IMPORTANT: Add ALL CNAME records above to your DNS provider"
@@ -307,8 +319,12 @@ jobs:
             API_VALIDATION_DATA=$(aws acm describe-certificate --region {{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}} --certificate-arn "$API_CERT_ARN" \
               --query 'Certificate.DomainValidationOptions[]' --output json)
             
-            # Check if any ResourceRecord is null
-            NULL_COUNT=$(echo "$API_VALIDATION_DATA" | jq '[.[] | select(.ResourceRecord == null)] | length')
+            # Check if validation data exists and if any ResourceRecord is null
+            if [ "$API_VALIDATION_DATA" = "null" ] || [ "$API_VALIDATION_DATA" = "[]" ] || [ -z "$API_VALIDATION_DATA" ]; then
+              NULL_COUNT=999  # Indicate that validation data is not ready
+            else
+              NULL_COUNT=$(echo "$API_VALIDATION_DATA" | jq '[.[] | select(.ResourceRecord == null)] | length' 2>/dev/null || echo "999")
+            fi
             
             if [ "$NULL_COUNT" -eq 0 ]; then
               echo "✅ API DNS validation records are now available!"
@@ -344,7 +360,7 @@ jobs:
           UI_VALIDATION_DATA=$(aws acm describe-certificate --region us-east-1 --certificate-arn "$UI_CERT_ARN" \
             --query 'Certificate.DomainValidationOptions[]' --output json 2>/dev/null || echo '[]')
           
-          if [ "$UI_VALIDATION_DATA" = "[]" ] || [ -z "$UI_VALIDATION_DATA" ]; then
+          if [ "$UI_VALIDATION_DATA" = "[]" ] || [ "$UI_VALIDATION_DATA" = "null" ] || [ -z "$UI_VALIDATION_DATA" ]; then
             echo "⚠️ No UI validation data available yet"
           else
             echo "$UI_VALIDATION_DATA" | jq -r '.[] | 
@@ -364,7 +380,7 @@ jobs:
           API_VALIDATION_DATA=$(aws acm describe-certificate --region {{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}} --certificate-arn "$API_CERT_ARN" \
             --query 'Certificate.DomainValidationOptions[]' --output json 2>/dev/null || echo '[]')
           
-          if [ "$API_VALIDATION_DATA" = "[]" ] || [ -z "$API_VALIDATION_DATA" ]; then
+          if [ "$API_VALIDATION_DATA" = "[]" ] || [ "$API_VALIDATION_DATA" = "null" ] || [ -z "$API_VALIDATION_DATA" ]; then
             echo "⚠️ No API validation data available yet"
           else
             echo "$API_VALIDATION_DATA" | jq -r '.[] | 
@@ -428,7 +444,7 @@ jobs:
             local validation_data=$(aws acm describe-certificate --region "$region" --certificate-arn "$cert_arn" \
               --query 'Certificate.DomainValidationOptions[]' --output json 2>/dev/null || echo '[]')
             
-            if [ "$validation_data" = "[]" ] || [ -z "$validation_data" ]; then
+            if [ "$validation_data" = "[]" ] || [ "$validation_data" = "null" ] || [ -z "$validation_data" ]; then
               echo "⚠️ No $cert_name validation data available yet"
               return 1
             fi
