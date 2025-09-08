@@ -55,7 +55,7 @@ jobs:
       - name: "Phase 1: Pre-Destroy Comprehensive Cleanup"
         continue-on-error: true
         run: |
-          cd ops/terraform
+          cd {{id}}/terraform
           echo "🧹 Phase 1: Comprehensive pre-destroy cleanup - preparing all resources..."
           
           # Enhanced cleanup function with dependency handling
@@ -476,7 +476,7 @@ jobs:
       - name: "Phase 2: Controlled Terraform Destroy"
         continue-on-error: true
         run: |
-          cd ops/terraform
+          cd {{id}}/terraform
           echo "🔧 Phase 2: Initializing Terraform for controlled destroy..."
           
           # Disable exit on error for this specific command

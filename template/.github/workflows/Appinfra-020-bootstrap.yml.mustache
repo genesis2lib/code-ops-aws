@@ -54,12 +54,12 @@ jobs:
 
       - name: Terraform Init (Bootstrap)
         run: |
-          cd ops/terraform/bootstrap
+          cd {{id}}/terraform/bootstrap
           terraform init -input=false
 
       - name: Terraform Validate (Bootstrap)
         run: |
-          cd ops/terraform/bootstrap
+          cd {{id}}/terraform/bootstrap
           terraform validate -no-color
 
       - name: Clear DynamoDB Locks
@@ -97,12 +97,12 @@ jobs:
 
       - name: Terraform Plan (Bootstrap)
         run: |
-          cd ops/terraform/bootstrap
+          cd {{id}}/terraform/bootstrap
           terraform plan -var="environment={{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}" -no-color -input=false
 
       - name: Terraform Apply (Bootstrap)
         run: |
-          cd ops/terraform/bootstrap
+          cd {{id}}/terraform/bootstrap
           echo "🚀 Applying bootstrap infrastructure..."
           
           # Try apply, but handle "already exists" errors gracefully
@@ -594,7 +594,7 @@ jobs:
 
       - name: Output Bootstrap Results
         run: |
-          cd ops/terraform/bootstrap
+          cd {{id}}/terraform/bootstrap
           echo "## Terraform Bootstrap Completed ✅" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**State Bucket:** $(terraform output -raw state_bucket_name)" >> $GITHUB_STEP_SUMMARY

@@ -64,7 +64,7 @@ jobs:
       - name: Terraform Init
         id: init
         run: |
-          cd ops/terraform
+          cd {{id}}/terraform
           echo "🔧 Initializing Terraform..."
           
           # Disable exit on error for this specific command
@@ -135,7 +135,7 @@ jobs:
       - name: Terraform Validate
         id: validate
         run: |
-          cd ops/terraform
+          cd {{id}}/terraform
           terraform validate -no-color
 
       - name: Check and Generate SSH Keys
@@ -184,7 +184,7 @@ jobs:
       - name: Terraform Plan
         id: plan
         run: |
-          cd ops/terraform
+          cd {{id}}/terraform
           echo "🗓️ Running Terraform plan..."
           
           # Build plan command
@@ -214,7 +214,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: tfplan-{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}
-          path: ops/terraform/tfplan-{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}
+          path: {{id}}/terraform/tfplan-{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}
           retention-days: 1
 
       - name: Plan Status
@@ -266,7 +266,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: tfplan-{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}
-          path: ops/terraform/
+          path: {{id}}/terraform/
 
       - name: Check and Generate SSH Keys
         run: |
@@ -347,7 +347,7 @@ jobs:
             
             # Update tfvars with certificate ARN
             echo "📝 Updating tfvars with certificate ARN..."
-            sed -i "s|certificate_arn = \"\"| certificate_arn = \"$CERT_ARN\"|g" "ops/terraform/environments/{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}.tfvars"
+            sed -i "s|certificate_arn = \"\"| certificate_arn = \"$CERT_ARN\"|g" "{{id}}/terraform/environments/{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}.tfvars"
             
             echo "✅ Certificate ARN set in tfvars"
           else
@@ -356,7 +356,7 @@ jobs:
 
       - name: Terraform Init
         run: |
-          cd ops/terraform
+          cd {{id}}/terraform
           echo "🔧 Initializing Terraform..."
           
           # Disable exit on error for this specific command
@@ -424,7 +424,7 @@ jobs:
       - name: Terraform Apply
         id: apply
         run: |
-          cd ops/terraform
+          cd {{id}}/terraform
           echo "🚀 Running Terraform Apply..."
           
           # Apply terraform with error handling
@@ -455,7 +455,7 @@ jobs:
         id: outputs
         if: steps.apply.outputs.apply_success == 'true'
         run: |
-          cd ops/terraform
+          cd {{id}}/terraform
           echo "📋 Extracting terraform outputs..."
           
           # Safely extract outputs with error handling
@@ -483,7 +483,7 @@ jobs:
       - name: Display SSL Certificate Validation Info
         continue-on-error: true
         run: |
-          cd ops/terraform
+          cd {{id}}/terraform
           echo "🌐 UI Domain Configuration:"
           echo "  UI Domain: $(terraform output -raw ui_domain)"
           echo "  CloudFront Domain: $(terraform output -raw cloudfront_domain_name)"
