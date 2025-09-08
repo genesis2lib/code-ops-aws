@@ -775,9 +775,9 @@ jobs:
           echo "✅ Enhanced manual cleanup completed!"
           
           # Also run the original cleanup script for additional coverage
-          if [ -f "ops/helper/cleanup-manual.sh" ]; then
+          if [ -f "{{id}}/helper/cleanup-manual.sh" ]; then
             echo "📋 Running additional cleanup script for comprehensive coverage..."
-            cd ops/helper
+            cd {{id}}/helper
             chmod +x cleanup-manual.sh
             # Ensure the cleanup script uses admin credentials
             AWS_ACCESS_KEY_ID="{{{githubVarsOpen}}} vars.AWS_ADMIN_ID {{{githubVarsClose}}}" AWS_SECRET_ACCESS_KEY="{{{githubVarsOpen}}} secrets.AWS_ADMIN_SECRET  {{{githubVarsClose}}}" AWS_DEFAULT_REGION="{{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}}" ./cleanup-manual.sh {{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}} 2>/dev/null || true

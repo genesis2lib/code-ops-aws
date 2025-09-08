@@ -197,21 +197,21 @@ jobs:
       - name: Deploy - Sync EC2 Setup Scripts to S3
         run: |
           echo "📋 Syncing latest EC2 setup scripts from Git to S3..."
-          echo "Source: ./ops/ec2-setup/"
+          echo "Source: ./{{id}}/ec2-setup/"
           echo "Target: s3://${OPS_BUCKET}/ec2-setup/"
           
           # Verify source directory exists
-          if [ ! -d "./ops/ec2-setup" ]; then
-            echo "❌ Source directory ./ops/ec2-setup not found"
+          if [ ! -d "./{{id}}/ec2-setup" ]; then
+            echo "❌ Source directory ./{{id}}/ec2-setup not found"
             exit 1
           fi
           
           # Show what we're about to sync
           echo "📁 Files to sync:"
-          ls -la ./ops/ec2-setup/
+          ls -la ./{{id}}/ec2-setup/
           
           # Sync ec2-setup directory to S3 (this will overwrite existing files)
-          if aws s3 sync ./ops/ec2-setup/ "s3://${OPS_BUCKET}/ec2-setup/" --delete --region {{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}}; then
+          if aws s3 sync ./{{id}}/ec2-setup/ "s3://${OPS_BUCKET}/ec2-setup/" --delete --region {{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}}; then
             echo "✅ Successfully synced EC2 setup scripts to S3"
             
             # Verify what was uploaded
@@ -376,7 +376,7 @@ jobs:
             echo "🔄 Enabling ALB health checks for Auto Scaling Group..."
             
             # Run the enable health checks script
-            cd ops/helper
+            cd {{id}}/helper
             chmod +x enable-health-checks.sh
             ./enable-health-checks.sh {{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}
             
