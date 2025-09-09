@@ -31,10 +31,10 @@ jobs:
           
           # Set environment variables
           echo "BRANCH={{{githubVarsOpen}}} github.ref_name {{{githubVarsClose}}}" >> $GITHUB_ENV
-          if [ "{{{githubVarsOpen}}} github.ref_name {{{githubVarsClose}}}" = "main" ]; then
-            echo "ENVIRONMENT=prod" >> $GITHUB_ENV
+          if [[ "{{{githubVarsOpen}}} github.ref_name {{{githubVarsClose}}}" = "main" || "{{{githubVarsOpen}}} github.ref_name {{{githubVarsClose}}}" = "production" ]]; then
+            echo "ENVIRONMENT=production" >> $GITHUB_ENV
           else
-            echo "ENVIRONMENT=test" >> $GITHUB_ENV
+            echo "ENVIRONMENT={{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" >> $GITHUB_ENV
           fi
           
           echo "✅ Environment setup completed: {{{githubVarsOpen}}} github.ref_name {{{githubVarsClose}}}"
