@@ -16,7 +16,7 @@ set -e
 # - EC2 Key Pairs, instances, and VPC resources
 
 PROJECT_NAME="{{projectName}}"
-ENVIRONMENT="${1:-prod}"  # Default to prod if not specified
+ENVIRONMENT="${1:-production}"  # Default to production if not specified
 
 echo "🧹 Starting manual cleanup for project: $PROJECT_NAME"
 echo "🌍 Environment: $ENVIRONMENT"

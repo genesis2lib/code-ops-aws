@@ -76,7 +76,7 @@ jobs:
           ENVIRONMENT="{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}"
           
           # Domain construction with environment-specific prefix
-          if [ "${ENVIRONMENT}" = "prod" ]; then
+          if [ "${ENVIRONMENT}" = "production" ]; then
             API_DOMAIN="{{projectName}}-api.{{sld}}.{{tld}}"
           else
             API_DOMAIN="{{projectName}}-${ENVIRONMENT}-api.{{sld}}.{{tld}}"
@@ -341,7 +341,7 @@ jobs:
           echo "✅ ALB DNS: $ALB_DNS"
           
           # Domain construction with environment-specific prefix
-          if [ "${ENVIRONMENT}" = "prod" ]; then
+          if [ "${ENVIRONMENT}" = "production" ]; then
             API_DOMAIN="{{projectName}}-api.{{sld}}.{{tld}}"
           else
             API_DOMAIN="{{projectName}}-${ENVIRONMENT}-api.{{sld}}.{{tld}}"

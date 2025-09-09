@@ -5,11 +5,11 @@ variable "aws_region" {
 }
 
 variable "environment" {
-  description = "Environment name ({{#environments}}{{name}}{{#hasMore}}, {{/hasMore}}{{/environments}})"
+  description = "Environment name (production, test, or any branch name)"
   type        = string
   validation {
-    condition     = contains([{{#environments}}"{{name}}"{{#hasMore}}, {{/hasMore}}{{/environments}}], var.environment)
-    error_message = "Environment must be one of: {{#environments}}{{name}}{{#hasMore}}, {{/hasMore}}{{/environments}}."
+    condition     = can(regex("^[a-zA-Z0-9-_]+$", var.environment))
+    error_message = "Environment must contain only alphanumeric characters, hyphens, and underscores."
   }
 }
 

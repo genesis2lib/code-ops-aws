@@ -165,7 +165,7 @@ jobs:
           echo "🔐 Creating SSL certificate for UI domain..."
           
           # Extract configuration with environment-specific prefix
-          if [ "${ENVIRONMENT}" = "prod" ]; then
+          if [ "${ENVIRONMENT}" = "production" ]; then
             UI_DOMAIN="{{projectName}}-ui.{{sld}}.{{tld}}"
           else
             UI_DOMAIN="{{projectName}}-${ENVIRONMENT}-ui.{{sld}}.{{tld}}"
@@ -269,7 +269,7 @@ jobs:
           echo "🔐 Creating SSL certificate for API domain (ALB - us-west-1)..."
           
           # Extract configuration with environment-specific prefix
-          if [ "${ENVIRONMENT}" = "prod" ]; then
+          if [ "${ENVIRONMENT}" = "production" ]; then
             API_DOMAIN="{{projectName}}-api.{{sld}}.{{tld}}"
           else
             API_DOMAIN="{{projectName}}-${ENVIRONMENT}-api.{{sld}}.{{tld}}"

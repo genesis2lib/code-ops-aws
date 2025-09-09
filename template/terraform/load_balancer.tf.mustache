@@ -5,7 +5,7 @@ resource "aws_lb" "server" {
   security_groups    = [aws_security_group.alb.id]
   subnets            = aws_subnet.public[*].id
 
-  enable_deletion_protection = var.environment == "prod"
+  enable_deletion_protection = var.environment == "production"
 
   access_logs {
     bucket  = aws_s3_bucket.alb_logs.bucket
@@ -64,7 +64,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "alb_logs" {
     }
 
     expiration {
-      days = var.environment == "prod" ? 90 : 30
+      days = var.environment == "production" ? 90 : 30
     }
 
     noncurrent_version_expiration {

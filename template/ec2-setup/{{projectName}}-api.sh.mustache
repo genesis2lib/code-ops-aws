@@ -42,7 +42,7 @@ if [ -n "$SPRING_PROFILES_ACTIVE" ]; then
     SPRING_ARGS="--spring.profiles.active=$SPRING_PROFILES_ACTIVE"
     log_with_timestamp "Using Spring profile: $SPRING_PROFILES_ACTIVE"
 else
-    log_with_timestamp "No Spring profile specified, using prod (default)"
+    log_with_timestamp "No Spring profile specified, using production (default)"
 fi
 
 # Start the application with logging

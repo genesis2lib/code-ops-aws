@@ -59,15 +59,15 @@ resource "aws_db_instance" "postgres" {
   db_subnet_group_name   = aws_db_subnet_group.postgres.name
   parameter_group_name   = aws_db_parameter_group.postgres.name
 
-  backup_retention_period = var.environment == "prod" ? 7 : 1
+  backup_retention_period = var.environment == "production" ? 7 : 1
   backup_window           = "03:00-04:00"
   maintenance_window      = "sun:04:00-sun:05:00"
 
-  skip_final_snapshot       = var.environment != "prod"
-  final_snapshot_identifier = var.environment == "prod" ? "${local.project_name}-${var.environment}-final-snapshot-${formatdate("YYYY-MM-DD-hhmm", timestamp())}" : null
+  skip_final_snapshot       = var.environment != "production"
+  final_snapshot_identifier = var.environment == "production" ? "${local.project_name}-${var.environment}-final-snapshot-${formatdate("YYYY-MM-DD-hhmm", timestamp())}" : null
 
   copy_tags_to_snapshot = true
-  deletion_protection   = var.environment == "prod"
+  deletion_protection   = var.environment == "production"
 
   performance_insights_enabled = true
   monitoring_interval          = 60

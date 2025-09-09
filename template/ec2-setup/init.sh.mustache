@@ -101,11 +101,11 @@ fi
 # 5. Sync all EC2 setup files from S3
 echo "=== Syncing all EC2 setup scripts from S3 ==="
 
-# Determine environment for S3 bucket (fallback to spring profile or prod)
+# Determine environment for S3 bucket (fallback to spring profile or production)
 if [ -n "$SPRING_PROFILE" ]; then
     ENV_FOR_S3="$SPRING_PROFILE"
 else
-    ENV_FOR_S3="prod"
+    ENV_FOR_S3="production"
 fi
 
 echo "Source: s3://{{projectName}}-${ENV_FOR_S3}-ops/ec2-setup/"
@@ -152,13 +152,13 @@ sudo chown -R {{projectName}}:{{projectName}} /opt/{{projectName}}
 # 8. Configure Spring profile and secrets
 echo "=== Configuring Spring profile and secrets ==="
 
-# Determine environment for secret name (fallback to spring profile or prod)
+# Determine environment for secret name (fallback to spring profile or production)
 if [ -n "$SPRING_PROFILE" ]; then
     ENV_FOR_SECRET="$SPRING_PROFILE"
     echo "Using Spring profile for environment: $SPRING_PROFILE"
 else
-    ENV_FOR_SECRET="prod"
-    echo "No Spring profile specified, defaulting to prod"
+    ENV_FOR_SECRET="production"
+    echo "No Spring profile specified, defaulting to production"
 fi
 
 # Single secret name for all application and database secrets
@@ -173,7 +173,7 @@ TEMP_SPRING_ENV="/tmp/spring.env.$$"
 if [ -n "$SPRING_PROFILE" ]; then
     echo "SPRING_PROFILES_ACTIVE=$SPRING_PROFILE" > "$TEMP_SPRING_ENV"
 else
-    echo "SPRING_PROFILES_ACTIVE=prod" > "$TEMP_SPRING_ENV"
+    echo "SPRING_PROFILES_ACTIVE=production" > "$TEMP_SPRING_ENV"
 fi
 
 # Fetch secrets from AWS Secrets Manager

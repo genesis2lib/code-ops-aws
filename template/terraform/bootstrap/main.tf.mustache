@@ -33,11 +33,11 @@ variable "state_bucket_name" {
 }
 
 variable "environment" {
-  description = "Environment name (prod, test)"
+  description = "Environment name (production, test, or any branch name)"
   type        = string
   validation {
-    condition     = contains(["prod", "test"], var.environment)
-    error_message = "Environment must be either 'prod' or 'test'."
+    condition     = can(regex("^[a-zA-Z0-9-_]+$", var.environment))
+    error_message = "Environment must contain only alphanumeric characters, hyphens, and underscores."
   }
 }
 
