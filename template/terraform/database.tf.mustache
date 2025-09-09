@@ -51,8 +51,8 @@ resource "aws_db_instance" "postgres" {
   engine_version = "16.4"
   instance_class = var.database_instance_class
 
-  db_name  = "{{projectName}}db"
-  username = "{{projectName}}admin"
+  db_name  = "${replace(local.project_name, "-", "")}db"
+  username = "${replace(local.project_name, "-", "")}admin"
   password = random_password.db_password.result
 
   vpc_security_group_ids = [aws_security_group.rds.id]
