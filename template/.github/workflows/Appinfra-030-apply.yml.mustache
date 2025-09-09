@@ -25,19 +25,14 @@ jobs:
 
       - name: Env setup
         run: |
-          if [[ "{{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" != "main" && "{{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" != "dev" ]]; then
-            echo "⚠️ Workflow only supports 'main' or 'dev' branches"
-            echo "Current branch: {{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}"
-            echo "Exiting with no-op"
-            exit 0
-          fi
           
           # Set environment variables
           echo "BRANCH={{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" >> $GITHUB_ENV
           if [[ "{{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" = "main" || "{{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" = "production" ]]; then
             echo "ENVIRONMENT=production" >> $GITHUB_ENV
           else
-            echo "ENVIRONMENT={{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" >> $GITHUB_ENV
+            BRANCH_ENV=$(echo "{{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" | sed "s///-/g")
+            echo "ENVIRONMENT=$BRANCH_ENV" >> $GITHUB_ENV
           fi
           
           echo "✅ Environment setup completed: {{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}"
@@ -233,19 +228,14 @@ jobs:
 
       - name: Env setup
         run: |
-          if [[ "{{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" != "main" && "{{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" != "dev" ]]; then
-            echo "⚠️ Workflow only supports 'main' or 'dev' branches"
-            echo "Current branch: {{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}"
-            echo "Exiting with no-op"
-            exit 0
-          fi
           
           # Set environment variables
           echo "BRANCH={{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" >> $GITHUB_ENV
           if [[ "{{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" = "main" || "{{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" = "production" ]]; then
             echo "ENVIRONMENT=production" >> $GITHUB_ENV
           else
-            echo "ENVIRONMENT={{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" >> $GITHUB_ENV
+            BRANCH_ENV=$(echo "{{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}" | sed "s///-/g")
+            echo "ENVIRONMENT=$BRANCH_ENV" >> $GITHUB_ENV
           fi
           
           echo "✅ Environment setup completed: {{{githubVarsOpen}}} github.ref_name  {{{githubVarsClose}}}"
