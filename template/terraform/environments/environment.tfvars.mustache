@@ -16,4 +16,4 @@ certificate_arn = "{{certificateArn}}"
 {{/certificateArn}}
 
 # Restrict access if needed (default allows all)
-allowed_cidr_blocks = [{{#allowedCidrBlocks}}"{{.}}"{{#hasMore}}, {{/hasMore}}{{/allowedCidrBlocks}}]
+allowed_cidr_blocks = [{{#allowedCidrBlocks}}"{{{.}}}"{{#hasMore}}, {{/hasMore}}{{/allowedCidrBlocks}}]
