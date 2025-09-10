@@ -1,30 +1,30 @@
 [Unit]
-Description={{module.name}} API Service
+Description={{backendModule.name}} API Service
 After=network.target
 Wants=network.target
 
 [Service]
 Type=simple
-User={{module.name}}
-Group={{module.name}}
-WorkingDirectory=/opt/{{module.name}}
-ExecStart=/opt/{{module.name}}/ec2-setup/{{module.name}}-api.sh
+User={{backendModule.name}}
+Group={{backendModule.name}}
+WorkingDirectory=/opt/{{backendModule.name}}
+ExecStart=/opt/{{backendModule.name}}/ec2-setup/{{backendModule.name}}-api.sh
 Restart=always
 RestartSec=10
 StandardOutput=journal
 StandardError=journal
-SyslogIdentifier={{module.name}}
+SyslogIdentifier={{backendModule.name}}
 
 # Environment variables
 Environment=JAVA_HOME=/usr/lib/jvm/java-21-amazon-corretto
 Environment=PATH=/usr/lib/jvm/java-21-amazon-corretto/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-EnvironmentFile=-/opt/{{module.name}}/env/spring.env
+EnvironmentFile=-/opt/{{backendModule.name}}/env/spring.env
 
 # Security settings
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
-ReadWritePaths=/opt/{{module.name}}
+ReadWritePaths=/opt/{{backendModule.name}}
 
 # Resource limits (optional - adjust as needed)
 LimitNOFILE=65536

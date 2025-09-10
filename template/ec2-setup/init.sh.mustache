@@ -26,11 +26,11 @@ sudo timedatectl set-timezone US/Central
 
 # 2. Create directories if not exists
 echo "=== Creating directory structure ==="
-sudo mkdir -p /opt/{{module.name}}/ec2-setup
-sudo mkdir -p /opt/{{module.name}}/lib
-sudo mkdir -p /opt/{{module.name}}/env
-sudo mkdir -p /opt/{{module.name}}/logs
-sudo mkdir -p /opt/{{module.name}}/backups
+sudo mkdir -p /opt/{{backendModule.name}}/ec2-setup
+sudo mkdir -p /opt/{{backendModule.name}}/lib
+sudo mkdir -p /opt/{{backendModule.name}}/env
+sudo mkdir -p /opt/{{backendModule.name}}/logs
+sudo mkdir -p /opt/{{backendModule.name}}/backups
 
 # 3. Install system dependencies
 echo "=== Installing system dependencies ==="
@@ -87,13 +87,13 @@ jq --version
 psql --version || echo "PostgreSQL verification failed"
 redis-server --version || echo "Redis verification failed"
 
-# 4. Create {{module.name}} user if not exists
-echo "=== Creating {{module.name}} user ==="
-if ! id "{{module.name}}" &>/dev/null; then
-    sudo useradd -r -s /bin/bash -d /opt/{{module.name}} -c "{{module.name}} API Service" {{module.name}}
-    echo "User '{{module.name}}' created successfully"
+# 4. Create {{backendModule.name}} user if not exists
+echo "=== Creating {{backendModule.name}} user ==="
+if ! id "{{backendModule.name}}" &>/dev/null; then
+    sudo useradd -r -s /bin/bash -d /opt/{{backendModule.name}} -c "{{backendModule.name}} API Service" {{backendModule.name}}
+    echo "User '{{backendModule.name}}' created successfully"
 else
-    echo "✅ User '{{module.name}}' already exists"
+    echo "✅ User '{{backendModule.name}}' already exists"
 fi
 
 
@@ -109,23 +109,23 @@ else
 fi
 
 echo "Source: s3://${OPS_BUCKET}/ec2-setup/"
-echo "Target: /opt/{{module.name}}/ec2-setup/"
+echo "Target: /opt/{{backendModule.name}}/ec2-setup/"
 
 # Create target directory if it doesn't exist
-sudo mkdir -p /opt/{{module.name}}/ec2-setup
+sudo mkdir -p /opt/{{backendModule.name}}/ec2-setup
 
 # Sync all files from S3 ec2-setup directory
-if sudo aws s3 sync s3://${OPS_BUCKET}/ec2-setup/ /opt/{{module.name}}/ec2-setup/; then
+if sudo aws s3 sync s3://${OPS_BUCKET}/ec2-setup/ /opt/{{backendModule.name}}/ec2-setup/; then
     echo "✅ Successfully synced EC2 setup scripts from S3"
     
     # Make all shell scripts executable
-    sudo chmod +x /opt/{{module.name}}/ec2-setup/*.sh
+    sudo chmod +x /opt/{{backendModule.name}}/ec2-setup/*.sh
     
     # Set ownership for all files
-    sudo chown -R {{module.name}}:{{module.name}} /opt/{{module.name}}/ec2-setup/
+    sudo chown -R {{backendModule.name}}:{{backendModule.name}} /opt/{{backendModule.name}}/ec2-setup/
     
     echo "📋 Downloaded EC2 setup files:"
-    ls -la /opt/{{module.name}}/ec2-setup/
+    ls -la /opt/{{backendModule.name}}/ec2-setup/
 else
     echo "❌ Failed to sync EC2 setup scripts from S3"
     echo "⚠️ Continuing with manual setup..."
@@ -133,19 +133,19 @@ fi
 
 # 6. Setup systemd service
 echo "=== Setting up systemd service ==="
-if [ -f "/opt/{{module.name}}/ec2-setup/{{module.name}}-api.service" ]; then
-    sudo cp /opt/{{module.name}}/ec2-setup/{{module.name}}-api.service /etc/systemd/system/
+if [ -f "/opt/{{backendModule.name}}/ec2-setup/{{backendModule.name}}-api.service" ]; then
+    sudo cp /opt/{{backendModule.name}}/ec2-setup/{{backendModule.name}}-api.service /etc/systemd/system/
     sudo systemctl daemon-reload
-    sudo systemctl enable {{module.name}}-api.service
+    sudo systemctl enable {{backendModule.name}}-api.service
     echo "✅ Systemd service configured successfully"
 else
-    echo "❌ Service file not found: /opt/{{module.name}}/ec2-setup/{{module.name}}-api.service"
+    echo "❌ Service file not found: /opt/{{backendModule.name}}/ec2-setup/{{backendModule.name}}-api.service"
     echo "⚠️ Manual service setup may be required"
 fi
 
 # 7. Set ownership
 echo "=== Setting ownership ==="
-sudo chown -R {{module.name}}:{{module.name}} /opt/{{module.name}}
+sudo chown -R {{backendModule.name}}:{{backendModule.name}} /opt/{{backendModule.name}}
 
 
 
@@ -220,19 +220,19 @@ fi
 echo "📋 Secrets configuration completed"
 
 # Move temp file to final location
-sudo mv "$TEMP_SPRING_ENV" /opt/{{module.name}}/env/spring.env
-sudo chown {{module.name}}:{{module.name}} /opt/{{module.name}}/env/spring.env
-sudo chmod 644 /opt/{{module.name}}/env/spring.env
+sudo mv "$TEMP_SPRING_ENV" /opt/{{backendModule.name}}/env/spring.env
+sudo chown {{backendModule.name}}:{{backendModule.name}} /opt/{{backendModule.name}}/env/spring.env
+sudo chmod 644 /opt/{{backendModule.name}}/env/spring.env
 
 echo "📋 Final Spring environment configuration:"
-echo "SPRING_PROFILES_ACTIVE=$(grep SPRING_PROFILES_ACTIVE /opt/{{module.name}}/env/spring.env | cut -d'=' -f2)"
-echo "Additional environment variables: $(grep -v SPRING_PROFILES_ACTIVE /opt/{{module.name}}/env/spring.env | wc -l)"
+echo "SPRING_PROFILES_ACTIVE=$(grep SPRING_PROFILES_ACTIVE /opt/{{backendModule.name}}/env/spring.env | cut -d'=' -f2)"
+echo "Additional environment variables: $(grep -v SPRING_PROFILES_ACTIVE /opt/{{backendModule.name}}/env/spring.env | wc -l)"
 
 # 9. Backup existing jar file
 echo "=== Backing up existing JAR file ==="
-if [ -f "/opt/{{module.name}}/lib/app.jar" ]; then
+if [ -f "/opt/{{backendModule.name}}/lib/app.jar" ]; then
     BACKUP_NAME="app.jar.backup.$(date +%Y%m%d_%H%M%S)"
-    sudo cp /opt/{{module.name}}/lib/app.jar /opt/{{module.name}}/lib/$BACKUP_NAME
+    sudo cp /opt/{{backendModule.name}}/lib/app.jar /opt/{{backendModule.name}}/lib/$BACKUP_NAME
     echo "Existing JAR backed up as: $BACKUP_NAME"
 else
     echo "No existing JAR found, skipping backup"
@@ -240,18 +240,18 @@ fi
 
 # 10. Download new JAR from S3
 echo "=== Downloading new JAR file ==="
-if sudo aws s3 cp "s3://${OPS_BUCKET}/jars/$JAR_NAME" /opt/{{module.name}}/lib/app.jar; then
+if sudo aws s3 cp "s3://${OPS_BUCKET}/jars/$JAR_NAME" /opt/{{backendModule.name}}/lib/app.jar; then
     echo "✅ Successfully downloaded $JAR_NAME from S3"
-    sudo chown {{module.name}}:{{module.name}} /opt/{{module.name}}/lib/app.jar
-    sudo chmod 644 /opt/{{module.name}}/lib/app.jar
+    sudo chown {{backendModule.name}}:{{backendModule.name}} /opt/{{backendModule.name}}/lib/app.jar
+    sudo chmod 644 /opt/{{backendModule.name}}/lib/app.jar
 else
     echo "❌ Failed to download $JAR_NAME from S3"
     exit 1
 fi
 
 # 11. Restart service
-echo "=== Restarting {{module.name}}-api service with profile: $SPRING_PROFILE ==="
-sudo systemctl restart {{module.name}}-api.service
+echo "=== Restarting {{backendModule.name}}-api service with profile: $SPRING_PROFILE ==="
+sudo systemctl restart {{backendModule.name}}-api.service
 
 # Verify service is running
 echo "=== Verifying service startup ==="
@@ -262,17 +262,17 @@ MAX_RETRIES=24
 SLEEP_TIME=10
 
 while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-    if systemctl is-active --quiet {{module.name}}-api.service; then
+    if systemctl is-active --quiet {{backendModule.name}}-api.service; then
         echo "✅ Service is running successfully!"
         echo
         echo "=== Service Status ==="
-        sudo systemctl status {{module.name}}-api.service --no-pager -l
+        sudo systemctl status {{backendModule.name}}-api.service --no-pager -l
         echo
         echo "=== Recent Logs ==="
-        sudo journalctl -u {{module.name}}-api.service -n 10 --no-pager
+        sudo journalctl -u {{backendModule.name}}-api.service -n 10 --no-pager
         echo
         echo "=== Current JAR ==="
-        ls -la /opt/{{module.name}}/lib/app.jar
+        ls -la /opt/{{backendModule.name}}/lib/app.jar
         echo
         echo "=== Initialization and Deployment completed successfully ==="
         exit 0
@@ -287,8 +287,8 @@ done
 echo "❌ Service failed to start after $((MAX_RETRIES * SLEEP_TIME)) seconds."
 echo
 echo "=== Service Status ==="
-sudo systemctl status {{module.name}}-api.service --no-pager -l
+sudo systemctl status {{backendModule.name}}-api.service --no-pager -l
 echo
 echo "=== Recent Error Logs ==="
-sudo journalctl -u {{module.name}}-api.service -n 20 --no-pager
+sudo journalctl -u {{backendModule.name}}-api.service -n 20 --no-pager
 exit 1

@@ -100,11 +100,11 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: '{{id}}/package-lock.json'
+          cache-dependency-path: {{frontendModule.id}}/package-lock.json
 
       - name: Build
         run: |
-          cd {{id}}
+          cd {{frontendModule.id}}
           ls -lart
           pwd
           node -v
@@ -116,7 +116,7 @@ jobs:
       - name: Deploy - Sync S3 Bucket
         run: |
           echo "Deploying to ${AWS_S3_TARGET} [${CLOUDFRONT_TARGET}]"
-          aws s3 sync {{id}}/dist "s3://${AWS_S3_TARGET}" --region {{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}} --delete
+          aws s3 sync {{frontendModule.id}}/dist "s3://${AWS_S3_TARGET}" --region {{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}} --delete
 
       - name: Deploy - Invalidate CloudFront cache
         run: |

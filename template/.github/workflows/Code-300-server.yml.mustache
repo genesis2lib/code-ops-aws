@@ -129,8 +129,8 @@ jobs:
 
       - name: Deploy - Add build info
         run: |
-          mkdir -p {{id}}/src/main/resources
-          echo -e "gh.build={{{githubVarsOpen}}} github.run_number  {{{githubVarsClose}}}\\ngh.attempt={{{githubVarsOpen}}} github.run_attempt  {{{githubVarsClose}}}\\ngh.action={{{githubVarsOpen}}} github.action  {{{githubVarsClose}}}\\ngh.modifiedDate={{{githubVarsOpen}}} github.event.repository.updated_at  {{{githubVarsClose}}}\\ngh.sha=$( git rev-parse --short HEAD )" > {{id}}/src/main/resources/git.properties
+          mkdir -p {{backendModule.id}}/src/main/resources
+          echo -e "gh.build={{{githubVarsOpen}}} github.run_number  {{{githubVarsClose}}}\\ngh.attempt={{{githubVarsOpen}}} github.run_attempt  {{{githubVarsClose}}}\\ngh.action={{{githubVarsOpen}}} github.action  {{{githubVarsClose}}}\\ngh.modifiedDate={{{githubVarsOpen}}} github.event.repository.updated_at  {{{githubVarsClose}}}\\ngh.sha=$( git rev-parse --short HEAD )" > {{backendModule.id}}/src/main/resources/git.properties
 
       - name: Deploy - Set up JDK 21
         uses: actions/setup-java@v4
@@ -145,30 +145,30 @@ jobs:
     
       - name: Deploy - Build Application (with tests)
         run: |
-          cd {{id}}
+          cd {{backendModule.id}}
           ./gradlew -PversionArg=1.0.{{{githubVarsOpen}}} github.run_number  {{{githubVarsClose}}}.{{{githubVarsOpen}}} github.run_attempt  {{{githubVarsClose}}} bootJar -x test
 
       - name: Deploy - Sync JAR to S3
         run: |
-          JAR_NAME="{{module.name}}-api-1.0.{{{githubVarsOpen}}} github.run_number  {{{githubVarsClose}}}.{{{githubVarsOpen}}} github.run_attempt  {{{githubVarsClose}}}.jar"
+          JAR_NAME="{{backendModule.name}}-api-1.0.{{{githubVarsOpen}}} github.run_number  {{{githubVarsClose}}}.{{{githubVarsOpen}}} github.run_attempt  {{{githubVarsClose}}}.jar"
           echo "📦 Syncing JAR to S3 ops bucket: ${OPS_BUCKET}/jars/"
           echo "JAR: ${JAR_NAME}"
           
           # Verify JAR file exists
-          if [ ! -f "{{id}}/build/libs/${JAR_NAME}" ]; then
-            echo "❌ JAR file not found: {{id}}/build/libs/${JAR_NAME}"
-            echo "📁 Available files in {{id}}/build/libs/:"
-            ls -la {{id}}/build/libs/ || echo "Directory not found"
+          if [ ! -f "{{backendModule.id}}/build/libs/${JAR_NAME}" ]; then
+            echo "❌ JAR file not found: {{backendModule.id}}/build/libs/${JAR_NAME}"
+            echo "📁 Available files in {{backendModule.id}}/build/libs/:"
+            ls -la {{backendModule.id}}/build/libs/ || echo "Directory not found"
             exit 1
           fi
           
           # Show JAR file info
           echo "📋 JAR file details:"
-          ls -lh "{{id}}/build/libs/${JAR_NAME}"
+          ls -lh "{{backendModule.id}}/build/libs/${JAR_NAME}"
           
           # Create a staging directory for sync
           mkdir -p ./staging/jars
-          cp "{{id}}/build/libs/${JAR_NAME}" "./staging/jars/"
+          cp {{backendModule.id}}/build/libs/${JAR_NAME} "./staging/jars/"
           
           # Sync the staging/jars directory to S3
           echo "🚀 Syncing JAR to S3..."
@@ -191,21 +191,21 @@ jobs:
       - name: Deploy - Sync EC2 Setup Scripts to S3
         run: |
           echo "📋 Syncing latest EC2 setup scripts from Git to S3..."
-          echo "Source: ./{{id}}/ec2-setup/"
+          echo "Source: ./ec2-setup/"
           echo "Target: s3://${OPS_BUCKET}/ec2-setup/"
           
           # Verify source directory exists
-          if [ ! -d "./{{id}}/ec2-setup" ]; then
-            echo "❌ Source directory ./{{id}}/ec2-setup not found"
+          if [ ! -d "./ec2-setup" ]; then
+            echo "❌ Source directory ./ec2-setup not found"
             exit 1
           fi
           
           # Show what we're about to sync
           echo "📁 Files to sync:"
-          ls -la ./{{id}}/ec2-setup/
+          ls -la ./ec2-setup/
           
-          # Sync ec2-setup directory to S3 (this will overwrite existing files)
-          if aws s3 sync ./{{id}}/ec2-setup/ "s3://${OPS_BUCKET}/ec2-setup/" --delete --region {{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}}; then
+          # Sync EC2 setup scripts to S3 with delete flag to remove old files
+          if aws s3 sync ./ec2-setup/ "s3://${OPS_BUCKET}/ec2-setup/" --delete --region {{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}}; then
             echo "✅ Successfully synced EC2 setup scripts to S3"
             
             # Verify what was uploaded
@@ -231,11 +231,11 @@ jobs:
             --document-name "AWS-RunShellScript" \
             --parameters 'commands=[
               "echo \"=== Syncing EC2 setup scripts from S3 ===\"",
-              "sudo mkdir -p /opt/{{module.name}}/ec2-setup",
-              "aws s3 sync s3://'${OPS_BUCKET}'/ec2-setup/ /opt/{{module.name}}/ec2-setup/ --region '${AWS_REGION}'",
-              "sudo chmod +x /opt/{{module.name}}/ec2-setup/*.sh",
+              "sudo mkdir -p /opt/{{backendModule.name}}/ec2-setup",
+              "aws s3 sync s3://'${OPS_BUCKET}'/ec2-setup/ /opt/{{backendModule.name}}/ec2-setup/ --region '${AWS_REGION}'",
+              "sudo chmod +x /opt/{{backendModule.name}}/ec2-setup/*.sh",
               "echo \"=== Running initialization script ===\"",
-              "sudo /opt/{{module.name}}/ec2-setup/init.sh '${JAR_NAME}' '${SPRING_PROFILE}'"
+              "sudo /opt/{{backendModule.name}}/ec2-setup/init.sh '${JAR_NAME}' '${SPRING_PROFILE}'"
             ]' \
             --timeout-seconds 1800 \
             --query 'Command.CommandId' \
@@ -345,7 +345,7 @@ jobs:
           echo "  - Environment: {{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}"
           echo "  - Spring Profile: ${SPRING_PROFILE}"
           echo "  - Instances: ${EC2_INSTANCES}"
-          echo "  - Service: {{module.name}}-api.service"
+          echo "  - Service: {{backendModule.name}}-api.service"
 
       - name: Enable ALB Health Checks
         run: |

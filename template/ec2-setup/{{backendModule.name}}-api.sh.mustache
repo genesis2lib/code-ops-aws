@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# {{module.name}} API Service Startup Script
+# {{backendModule.name}} API Service Startup Script
 
 # Set up logging
-LOG_DIR="/opt/{{module.name}}/logs"
-LOG_FILE="$LOG_DIR/{{module.name}}-$(date +%Y%m%d).log"
+LOG_DIR="/opt/{{backendModule.name}}/logs"
+LOG_FILE="$LOG_DIR/{{backendModule.name}}-$(date +%Y%m%d).log"
 
 # Ensure log directory exists
 mkdir -p "$LOG_DIR"
@@ -14,10 +14,10 @@ log_with_timestamp() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" | tee -a "$LOG_FILE"
 }
 
-log_with_timestamp "Starting {{module.name}} API Service"
+log_with_timestamp "Starting {{backendModule.name}} API Service"
 
 # Change to service directory
-cd /opt/{{module.name}}
+cd /opt/{{backendModule.name}}
 
 # Add gcloud to PATH
 #if [ -f '/opt/google-cloud-sdk/path.bash.inc' ]; then
@@ -26,15 +26,15 @@ cd /opt/{{module.name}}
 #export PATH="/opt/google-cloud-sdk/bin:$PATH"
 
 # Check if JAR file exists
-if [ ! -f "/opt/{{module.name}}/lib/app.jar" ]; then
-    log_with_timestamp "ERROR: JAR file not found at /opt/{{module.name}}/lib/app.jar"
+if [ ! -f "/opt/{{backendModule.name}}/lib/app.jar" ]; then
+    log_with_timestamp "ERROR: JAR file not found at /opt/{{backendModule.name}}/lib/app.jar"
     exit 1
 fi
 
 # Log Java version and environment
 log_with_timestamp "Java version: $(java -version 2>&1 | head -n 1)"
 log_with_timestamp "Working directory: $(pwd)"
-log_with_timestamp "JAR file: $(ls -la /opt/{{module.name}}/lib/app.jar)"
+log_with_timestamp "JAR file: $(ls -la /opt/{{backendModule.name}}/lib/app.jar)"
 
 # Determine Spring profile arguments
 SPRING_ARGS=""
@@ -46,10 +46,10 @@ else
 fi
 
 # Start the application with logging
-log_with_timestamp "Starting Java application: /opt/{{module.name}}/lib/app.jar $SPRING_ARGS"
+log_with_timestamp "Starting Java application: /opt/{{backendModule.name}}/lib/app.jar $SPRING_ARGS"
 
 # Run the application and pipe all output to our logging function
-java -jar /opt/{{module.name}}/lib/app.jar $SPRING_ARGS 2>&1 | while IFS= read -r line; do
+java -jar /opt/{{backendModule.name}}/lib/app.jar $SPRING_ARGS 2>&1 | while IFS= read -r line; do
     log_with_timestamp "$line"
 done
 
