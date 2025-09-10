@@ -1,7 +1,6 @@
 name: Code-200-Client
 on:
   push:
-    branches: [ main, dev ]
   workflow_dispatch:
 
 permissions:
@@ -96,29 +95,95 @@ jobs:
         env:
           AWS_DEFAULT_REGION: {{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}}
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: './client/package-lock.json'
-
-      - name: Build
+      - name: Check for static assets
+        id: assets-check
         run: |
-          cd client
-          node -v
-          npm -v
-          npm install
-          npx update-browserslist-db@latest
-          CI=false npm run "build:{{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}"
+          # Check for assets in the {{id}} directory structure
+          if [ -d "{{id}}/dist" ]; then
+            echo "directory={{id}}/dist" >> $GITHUB_OUTPUT
+            echo "found=true" >> $GITHUB_OUTPUT
+          elif [ -d "{{id}}/build" ]; then
+            echo "directory={{id}}/build" >> $GITHUB_OUTPUT
+            echo "found=true" >> $GITHUB_OUTPUT
+          elif [ -d "{{id}}/public" ]; then
+            echo "directory={{id}}/public" >> $GITHUB_OUTPUT
+            echo "found=true" >> $GITHUB_OUTPUT
+          elif [ -d "{{id}}/www" ]; then
+            echo "directory={{id}}/www" >> $GITHUB_OUTPUT
+            echo "found=true" >> $GITHUB_OUTPUT
+          elif [ -d "{{id}}/out" ]; then
+            echo "directory={{id}}/out" >> $GITHUB_OUTPUT
+            echo "found=true" >> $GITHUB_OUTPUT
+          else
+            echo "found=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Static Assets Status
+        run: |
+          if [ "${{ steps.assets-check.outputs.found }}" == "true" ]; then
+            echo "✅ Static assets found in '${{ steps.assets-check.outputs.directory }}' directory"
+            echo "📤 Ready to deploy to S3 + CloudFront"
+          else
+            echo "⚠️ No static assets directory found in {{id}}/ (dist, build, public, www, or out)"
+            echo "📋 To deploy static assets:"
+            echo "  1. Build your application (React, Vue, Angular, Next.js, etc.)"
+            echo "  2. Ensure built files are in: {{id}}/dist/, {{id}}/build/, {{id}}/public/, {{id}}/www/, or {{id}}/out/"
+            echo "  3. Re-run this workflow"
+            echo ""
+            echo "🏗️ Skipping deployment - no assets to deploy"
+          fi
+
+      - name: Validate Assets Directory
+        if: steps.assets-check.outputs.found == 'true'
+        run: |
+          ASSETS_DIR="${{ steps.assets-check.outputs.directory }}"
+          echo "📂 Validating assets in '$ASSETS_DIR' directory..."
+          
+          # Check if directory has content
+          if [ -z "$(ls -A $ASSETS_DIR 2>/dev/null)" ]; then
+            echo "❌ Assets directory '$ASSETS_DIR' is empty"
+            exit 1
+          fi
+          
+          # List contents for verification
+          echo "📋 Assets directory contents:"
+          ls -la "$ASSETS_DIR"
+          
+          # Check total size
+          SIZE=$(du -sh "$ASSETS_DIR" | cut -f1)
+          echo "📊 Total assets size: $SIZE"
+          
+          echo "✅ Assets validation completed"
 
       - name: Deploy - Sync S3 Bucket
+        if: steps.assets-check.outputs.found == 'true'
         run: |
-          echo "Deploying to ${AWS_S3_TARGET} [${CLOUDFRONT_TARGET}]"
-          aws s3 sync ./client/dist "s3://${AWS_S3_TARGET}" --region {{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}} --delete
+          ASSETS_DIR="${{ steps.assets-check.outputs.directory }}"
+          echo "📦 Deploying assets from '$ASSETS_DIR' to S3: ${AWS_S3_TARGET}"
+          echo "🌐 CloudFront distribution: ${CLOUDFRONT_TARGET}"
+          
+          # Sync assets to S3 bucket
+          echo "🚀 Starting S3 sync..."
+          aws s3 sync "$ASSETS_DIR" "s3://${AWS_S3_TARGET}" \
+            --region {{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}} \
+            --delete \
+            --exclude "*.map" \
+            --exclude ".DS_Store"
+          
+          echo "✅ S3 sync completed"
           
       - name: Deploy - Invalidate CloudFront cache
+        if: steps.assets-check.outputs.found == 'true'
         run: |
-          echo "Invalidating CloudFront distribution cache for ${CLOUDFRONT_TARGET}"
-          aws cloudfront create-invalidation --distribution-id "${CLOUDFRONT_TARGET}" --paths "/*"
+          echo "🔄 Invalidating CloudFront cache for distribution: ${CLOUDFRONT_TARGET}"
+          
+          # Create cache invalidation
+          INVALIDATION_ID=$(aws cloudfront create-invalidation \
+            --distribution-id "${CLOUDFRONT_TARGET}" \
+            --paths "/*" \
+            --query 'Invalidation.Id' \
+            --output text)
+          
+          echo "✅ Cache invalidation created: $INVALIDATION_ID"
+          echo "⏳ Cache invalidation typically takes 1-5 minutes to complete"
 
