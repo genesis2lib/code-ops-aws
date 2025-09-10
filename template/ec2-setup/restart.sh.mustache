@@ -1,19 +1,19 @@
 #!/bin/bash
 
-# Restart script for {{projectName}} API Service
+# Restart script for {{module.name}} API Service
 
-echo "=== Restarting {{projectName}} API Service ==="
+echo "=== Restarting {{module.name}} API Service ==="
 
 # Stop the service if running
-if systemctl is-active --quiet {{projectName}}-api.service; then
-    echo "Stopping {{projectName}} service..."
-    sudo systemctl stop {{projectName}}-api.service
+if systemctl is-active --quiet {{module.name}}-api.service; then
+    echo "Stopping {{module.name}} service..."
+    sudo systemctl stop {{module.name}}-api.service
 
     # Wait a bit for graceful shutdown
     sleep 3
 
     # Check if it's actually stopped
-    if systemctl is-active --quiet {{projectName}}-api.service; then
+    if systemctl is-active --quiet {{module.name}}-api.service; then
         echo "Service still running, waiting longer..."
         sleep 5
     fi
@@ -22,8 +22,8 @@ else
 fi
 
 # Start the service
-echo "Starting {{projectName}} service..."
-sudo systemctl start {{projectName}}-api.service
+echo "Starting {{module.name}} service..."
+sudo systemctl start {{module.name}}-api.service
 
 # Wait for startup
 sleep 5
@@ -33,14 +33,14 @@ RETRY_COUNT=0
 MAX_RETRIES=6
 
 while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-    if systemctl is-active --quiet {{projectName}}-api.service; then
+    if systemctl is-active --quiet {{module.name}}-api.service; then
         echo "✅ Service restarted successfully"
         echo
         echo "=== Service Status ==="
-        sudo systemctl status {{projectName}}-api.service --no-pager -l
+        sudo systemctl status {{module.name}}-api.service --no-pager -l
         echo
         echo "=== Recent Logs ==="
-        sudo journalctl -u {{projectName}}-api.service -n 10 --no-pager
+        sudo journalctl -u {{module.name}}-api.service -n 10 --no-pager
         exit 0
     fi
 
@@ -53,8 +53,8 @@ done
 echo "❌ Service failed to start after restart"
 echo
 echo "=== Service Status ==="
-sudo systemctl status {{projectName}}-api.service --no-pager -l
+sudo systemctl status {{module.name}}-api.service --no-pager -l
 echo
 echo "=== Recent Error Logs ==="
-sudo journalctl -u {{projectName}}-api.service -n 20 --no-pager
+sudo journalctl -u {{module.name}}-api.service -n 20 --no-pager
 exit 1

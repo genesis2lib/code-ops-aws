@@ -150,7 +150,7 @@ jobs:
 
       - name: Deploy - Sync JAR to S3
         run: |
-          JAR_NAME="{{projectName}}-api-1.0.{{{githubVarsOpen}}} github.run_number  {{{githubVarsClose}}}.{{{githubVarsOpen}}} github.run_attempt  {{{githubVarsClose}}}.jar"
+          JAR_NAME="{{module.name}}-api-1.0.{{{githubVarsOpen}}} github.run_number  {{{githubVarsClose}}}.{{{githubVarsOpen}}} github.run_attempt  {{{githubVarsClose}}}.jar"
           echo "📦 Syncing JAR to S3 ops bucket: ${OPS_BUCKET}/jars/"
           echo "JAR: ${JAR_NAME}"
           
@@ -231,11 +231,11 @@ jobs:
             --document-name "AWS-RunShellScript" \
             --parameters 'commands=[
               "echo \"=== Syncing EC2 setup scripts from S3 ===\"",
-              "sudo mkdir -p /opt/{{projectName}}/ec2-setup",
-              "aws s3 sync s3://'${OPS_BUCKET}'/ec2-setup/ /opt/{{projectName}}/ec2-setup/ --region '${AWS_REGION}'",
-              "sudo chmod +x /opt/{{projectName}}/ec2-setup/*.sh",
+              "sudo mkdir -p /opt/{{module.name}}/ec2-setup",
+              "aws s3 sync s3://'${OPS_BUCKET}'/ec2-setup/ /opt/{{module.name}}/ec2-setup/ --region '${AWS_REGION}'",
+              "sudo chmod +x /opt/{{module.name}}/ec2-setup/*.sh",
               "echo \"=== Running initialization script ===\"",
-              "sudo /opt/{{projectName}}/ec2-setup/init.sh '${JAR_NAME}' '${SPRING_PROFILE}'"
+              "sudo /opt/{{module.name}}/ec2-setup/init.sh '${JAR_NAME}' '${SPRING_PROFILE}'"
             ]' \
             --timeout-seconds 1800 \
             --query 'Command.CommandId' \
@@ -345,7 +345,7 @@ jobs:
           echo "  - Environment: {{{githubVarsOpen}}} env.ENVIRONMENT  {{{githubVarsClose}}}"
           echo "  - Spring Profile: ${SPRING_PROFILE}"
           echo "  - Instances: ${EC2_INSTANCES}"
-          echo "  - Service: {{projectName}}-api.service"
+          echo "  - Service: {{module.name}}-api.service"
 
       - name: Enable ALB Health Checks
         run: |
