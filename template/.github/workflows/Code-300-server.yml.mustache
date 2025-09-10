@@ -146,7 +146,7 @@ jobs:
       - name: Deploy - Build Application (with tests)
         run: |
           cd {{backendModule.id}}
-          ./gradlew -PversionArg=1.0.{{{githubVarsOpen}}} github.run_number  {{{githubVarsClose}}}.{{{githubVarsOpen}}} github.run_attempt  {{{githubVarsClose}}} bootJar -x test
+          gradle -PversionArg=1.0.{{{githubVarsOpen}}} github.run_number  {{{githubVarsClose}}}.{{{githubVarsOpen}}} github.run_attempt  {{{githubVarsClose}}} bootJar -x test
 
       - name: Deploy - Sync JAR to S3
         run: |
