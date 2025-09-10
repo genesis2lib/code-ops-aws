@@ -191,21 +191,21 @@ jobs:
       - name: Deploy - Sync EC2 Setup Scripts to S3
         run: |
           echo "📋 Syncing latest EC2 setup scripts from Git to S3..."
-          echo "Source: ./ec2-setup/"
+          echo "Source: ./{{id}}/ec2-setup/"
           echo "Target: s3://${OPS_BUCKET}/ec2-setup/"
           
           # Verify source directory exists
-          if [ ! -d "./ec2-setup" ]; then
-            echo "❌ Source directory ./ec2-setup not found"
+          if [ ! -d "./{{id}}/ec2-setup" ]; then
+            echo "❌ Source directory ./{{id}}/ec2-setup not found"
             exit 1
           fi
           
           # Show what we're about to sync
           echo "📁 Files to sync:"
-          ls -la ./ec2-setup/
+          ls -la ./{{id}}/ec2-setup/
           
           # Sync EC2 setup scripts to S3 with delete flag to remove old files
-          if aws s3 sync ./ec2-setup/ "s3://${OPS_BUCKET}/ec2-setup/" --delete --region {{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}}; then
+          if aws s3 sync ./{{id}}/ec2-setup/ "s3://${OPS_BUCKET}/ec2-setup/" --delete --region {{{githubVarsOpen}}} env.AWS_REGION  {{{githubVarsClose}}}; then
             echo "✅ Successfully synced EC2 setup scripts to S3"
             
             # Verify what was uploaded
