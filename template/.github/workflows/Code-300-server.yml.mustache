@@ -130,7 +130,7 @@ jobs:
       - name: Deploy - Add build info
         run: |
           mkdir -p {{backendModule.id}}/src/main/resources
-          echo -e "gh.build={{{githubVarsOpen}}} github.run_number  {{{githubVarsClose}}}\\ngh.attempt={{{githubVarsOpen}}} github.run_attempt  {{{githubVarsClose}}}\\ngh.action={{{githubVarsOpen}}} github.action  {{{githubVarsClose}}}\\ngh.modifiedDate={{{githubVarsOpen}}} github.event.repository.updated_at  {{{githubVarsClose}}}\\ngh.sha=$( git rev-parse --short HEAD )" > {{backendModule.id}}/src/main/resources/git.properties
+          echo -e "gh.build={{{githubVarsOpen}}} github.run_number  {{{githubVarsClose}}}\\ngh.attempt={{{githubVarsOpen}}} github.run_attempt  {{{githubVarsClose}}}\\ngh.action={{{githubVarsOpen}}} github.action  {{{githubVarsClose}}}\\ngh.modifiedDate={{{githubVarsOpen}}} github.event.repository.updated_at  {{{githubVarsClose}}}\\ngh.sha=$( git rev-parse --short HEAD )" > {{backendModule.id}}/src/main/resources/version.properties
 
       - name: Deploy - Set up JDK 21
         uses: actions/setup-java@v4
