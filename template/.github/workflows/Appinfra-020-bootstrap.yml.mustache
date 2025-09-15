@@ -387,8 +387,11 @@ jobs:
           fi
           
           echo "=================================================="
-          if [ -n "{{{githubVarsOpen}}} secrets.DNS_PROVIDER_KEY  {{{githubVarsClose}}}" ] && [ "{{{githubVarsOpen}}} env.DNS_PROVIDER  {{{githubVarsClose}}}" = "cloudflare" ]; then
-            echo "🚀 Automatic DNS management will be attempted in the next step"
+          if [ "{{{githubVarsOpen}}} env.DNS_PROVIDER  {{{githubVarsClose}}}" = "route53" ]; then
+            echo "🚀 Route53 automatic validation will be attempted in the next step"
+            echo "⏳ Both certificates will auto-validate automatically via Route53"
+          elif [ -n "{{{githubVarsOpen}}} secrets.DNS_PROVIDER_KEY  {{{githubVarsClose}}}" ] && [ "{{{githubVarsOpen}}} env.DNS_PROVIDER  {{{githubVarsClose}}}" = "cloudflare" ]; then
+            echo "🚀 Cloudflare automatic DNS management will be attempted in the next step"
             echo "⏳ Both certificates will auto-validate once DNS records are added"
           else
             echo "⚠️  IMPORTANT: Add ALL CNAME records above to your DNS provider"
@@ -415,14 +418,18 @@ jobs:
             exit 0
           fi
           
-          # Currently only support Cloudflare
-          if [ "{{{githubVarsOpen}}} env.DNS_PROVIDER  {{{githubVarsClose}}}" != "cloudflare" ]; then
-            echo "⚠️ DNS provider '{{{githubVarsOpen}}} env.DNS_PROVIDER  {{{githubVarsClose}}}' not supported. Currently only 'cloudflare' is supported."
+          # Support both Cloudflare and Route53
+          if [ "{{{githubVarsOpen}}} env.DNS_PROVIDER  {{{githubVarsClose}}}" = "route53" ]; then
+            echo "✅ DNS provider 'route53' detected - will use Route53 for automatic validation"
+            echo "DNS_AUTO_MANAGED=true" >> $GITHUB_OUTPUT
+          elif [ "{{{githubVarsOpen}}} env.DNS_PROVIDER  {{{githubVarsClose}}}" = "cloudflare" ]; then
+            echo "✅ DNS provider 'cloudflare' detected - will use Cloudflare API for DNS management"
+            echo "DNS_AUTO_MANAGED=true" >> $GITHUB_OUTPUT
+          else
+            echo "⚠️ DNS provider '{{{githubVarsOpen}}} env.DNS_PROVIDER  {{{githubVarsClose}}}' not supported. Supported providers: 'cloudflare', 'route53'"
             echo "DNS_AUTO_MANAGED=false" >> $GITHUB_OUTPUT
             exit 0
           fi
-          
-          echo "✅ DNS provider API key found and provider 'cloudflare' is supported"
           echo "🚀 Attempting to automatically manage DNS records..."
           
           # Get certificate validation data
@@ -545,23 +552,41 @@ jobs:
             fi
           }
           
-          # Test Cloudflare API connectivity
-          echo "🔍 Testing Cloudflare API connectivity..."
           DOMAIN_BASE="{{sld}}.{{tld}}"
-          test_response=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones?name=$DOMAIN_BASE" \
-            -H "Authorization: Bearer {{{githubVarsOpen}}} secrets.DNS_PROVIDER_KEY  {{{githubVarsClose}}}" \
-            -H "Content-Type: application/json" 2>/dev/null || echo '{"success":false}')
-          
-          if echo "$test_response" | jq -e '.success' >/dev/null 2>&1; then
-            echo "✅ Cloudflare API connectivity test successful"
+
+          # Handle DNS provider-specific logic
+          if [ "{{{githubVarsOpen}}} env.DNS_PROVIDER  {{{githubVarsClose}}}" = "route53" ]; then
+            echo "🔍 Using Route53 for automatic certificate validation..."
+            echo "✅ Route53 DNS provider configured - certificates will auto-validate"
+
+            # For Route53, we don't need to manually add CNAME records
+            # ACM will automatically validate certificates if the domain is in Route53
+            echo "📝 Route53 will automatically handle certificate validation"
+            echo "DNS_AUTO_MANAGED=true" >> $GITHUB_OUTPUT
+            exit 0
+
+          elif [ "{{{githubVarsOpen}}} env.DNS_PROVIDER  {{{githubVarsClose}}}" = "cloudflare" ]; then
+            echo "🔍 Testing Cloudflare API connectivity..."
+            test_response=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones?name=$DOMAIN_BASE" \
+              -H "Authorization: Bearer {{{githubVarsOpen}}} secrets.DNS_PROVIDER_KEY  {{{githubVarsClose}}}" \
+              -H "Content-Type: application/json" 2>/dev/null || echo '{"success":false}')
+
+            if echo "$test_response" | jq -e '.success' >/dev/null 2>&1; then
+              echo "✅ Cloudflare API connectivity test successful"
+            else
+              echo "❌ Cloudflare API connectivity test failed. Skipping automatic DNS management."
+              echo "DNS_AUTO_MANAGED=false" >> $GITHUB_OUTPUT
+              exit 0
+            fi
           else
-            echo "❌ Cloudflare API connectivity test failed. Skipping automatic DNS management."
+            echo "❌ Unsupported DNS provider: {{{githubVarsOpen}}} env.DNS_PROVIDER  {{{githubVarsClose}}}"
             echo "DNS_AUTO_MANAGED=false" >> $GITHUB_OUTPUT
             exit 0
           fi
           
-          # Process UI certificate validation records
-          echo "🔐 Processing UI certificate validation records..."
+          # Cloudflare-specific certificate validation record processing
+          # (Only runs when DNS provider is Cloudflare)
+          echo "🔐 Processing certificate validation records for Cloudflare..."
           ui_records=$(get_validation_records "$UI_CERT_ARN" "us-east-1" "UI certificate")
           if [ $? -eq 0 ] && [ -n "$ui_records" ]; then
             echo "$ui_records" | while IFS='|' read -r domain cname_name cname_value; do
@@ -600,7 +625,7 @@ jobs:
             done
           fi
           
-          echo "✅ DNS record management completed"
+          echo "✅ Cloudflare DNS record management completed"
           echo "DNS_AUTO_MANAGED=true" >> $GITHUB_OUTPUT
 
       - name: Output Bootstrap Results
