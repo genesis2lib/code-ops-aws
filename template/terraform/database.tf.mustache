@@ -1,4 +1,7 @@
-resource "aws_db_subnet_group" "postgres" {
+{{#hasDatabase}}
+# Database configuration based on selected database type: {{selectedDatabaseType}}
+
+resource "aws_db_subnet_group" "database" {
   name       = "${local.project_name}-${var.environment}-db-subnet-group"
   subnet_ids = aws_subnet.private[*].id
 
@@ -7,7 +10,8 @@ resource "aws_db_subnet_group" "postgres" {
   })
 }
 
-resource "aws_db_parameter_group" "postgres" {
+{{#isPostgreSQL}}
+resource "aws_db_parameter_group" "database" {
   family = "postgres16"
   name   = "${local.project_name}-${var.environment}-db-params"
 
@@ -29,6 +33,57 @@ resource "aws_db_parameter_group" "postgres" {
     create_before_destroy = true
   }
 }
+{{/isPostgreSQL}}
+
+{{#isMySQL}}
+resource "aws_db_parameter_group" "database" {
+  family = "mysql8.0"
+  name   = "${local.project_name}-${var.environment}-db-params"
+
+  parameter {
+    name  = "slow_query_log"
+    value = "1"
+  }
+
+  parameter {
+    name  = "long_query_time"
+    value = "1"
+  }
+
+  tags = merge(local.common_tags, {
+    Name = "${local.project_name}-${var.environment}-db-params"
+  })
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+{{/isMySQL}}
+
+{{#isMariaDB}}
+resource "aws_db_parameter_group" "database" {
+  family = "mariadb10.11"
+  name   = "${local.project_name}-${var.environment}-db-params"
+
+  parameter {
+    name  = "slow_query_log"
+    value = "1"
+  }
+
+  parameter {
+    name  = "long_query_time"
+    value = "1"
+  }
+
+  tags = merge(local.common_tags, {
+    Name = "${local.project_name}-${var.environment}-db-params"
+  })
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+{{/isMariaDB}}
 
 resource "random_password" "db_password" {
   length  = 16
@@ -39,7 +94,7 @@ resource "random_password" "db_password" {
 
 # Database password is now part of app_secrets in security.tf
 
-resource "aws_db_instance" "postgres" {
+resource "aws_db_instance" "database" {
   identifier = "${local.project_name}-${var.environment}-db"
 
   allocated_storage     = var.database_allocated_storage
@@ -47,17 +102,59 @@ resource "aws_db_instance" "postgres" {
   storage_type          = "gp3"
   storage_encrypted     = true
 
+  {{#isPostgreSQL}}
   engine         = "postgres"
   engine_version = "16.4"
+  {{/isPostgreSQL}}
+  {{#isMySQL}}
+  engine         = "mysql"
+  engine_version = "8.0.35"
+  {{/isMySQL}}
+  {{#isMariaDB}}
+  engine         = "mariadb"
+  engine_version = "10.11.6"
+  {{/isMariaDB}}
+  {{#isOracle}}
+  engine         = "oracle-ee"
+  engine_version = "19.0.0.0.ru-2023-10.rur-2023-10.r1"
+  {{/isOracle}}
+  {{#isSQLServer}}
+  engine         = "sqlserver-ex"
+  engine_version = "15.00.4236.7.v1"
+  {{/isSQLServer}}
+
   instance_class = var.database_instance_class
 
+  {{#isPostgreSQL}}
   db_name  = "${replace(local.project_name, "-", "")}db"
+  {{/isPostgreSQL}}
+  {{#isMySQL}}
+  db_name  = "${replace(local.project_name, "-", "")}db"
+  {{/isMySQL}}
+  {{#isMariaDB}}
+  db_name  = "${replace(local.project_name, "-", "")}db"
+  {{/isMariaDB}}
+  {{#isOracle}}
+  # Oracle doesn't use db_name parameter
+  {{/isOracle}}
+  {{#isSQLServer}}
+  db_name  = "${replace(local.project_name, "-", "")}db"
+  {{/isSQLServer}}
+
   username = "${replace(local.project_name, "-", "")}admin"
   password = random_password.db_password.result
 
   vpc_security_group_ids = [aws_security_group.rds.id]
-  db_subnet_group_name   = aws_db_subnet_group.postgres.name
-  parameter_group_name   = aws_db_parameter_group.postgres.name
+  db_subnet_group_name   = aws_db_subnet_group.database.name
+  {{#isPostgreSQL}}
+  parameter_group_name   = aws_db_parameter_group.database.name
+  {{/isPostgreSQL}}
+  {{#isMySQL}}
+  parameter_group_name   = aws_db_parameter_group.database.name
+  {{/isMySQL}}
+  {{#isMariaDB}}
+  parameter_group_name   = aws_db_parameter_group.database.name
+  {{/isMariaDB}}
 
   backup_retention_period = var.environment == "production" ? 7 : 1
   backup_window           = "03:00-04:00"
@@ -103,3 +200,4 @@ resource "aws_iam_role_policy_attachment" "rds_monitoring" {
   role       = aws_iam_role.rds_monitoring.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole"
 }
+{{/hasDatabase}}
