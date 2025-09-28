@@ -23,11 +23,13 @@ output "load_balancer_zone_id" {
   value       = aws_lb.server.zone_id
 }
 
+{{#hasDatabase}}
 output "database_endpoint" {
   description = "RDS database endpoint"
-  value       = aws_db_instance.postgres.endpoint
+  value       = aws_db_instance.database.endpoint
   sensitive   = true
 }
+{{/hasDatabase}}
 
 output "autoscaling_group_name" {
   description = "Auto Scaling Group name"

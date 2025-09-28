@@ -145,11 +145,13 @@ resource "aws_secretsmanager_secret_version" "app_secrets" {
     ENCRYPTION_KEY = "3m4NKW712yh8bk75qSv1Zbvji841gJM8z2YD2pQde3MGotAET1h3fJ179dz0D5BV"
 
     # Database secrets
+{{#hasDatabase}}
     DB_USERNAME = "{{projectName}}admin"
     DB_PASSWORD = random_password.db_password.result
     DB_ENGINE   = "postgres"
-    DB_HOST     = aws_db_instance.postgres.address
-    DB_PORT     = aws_db_instance.postgres.port
-    DB_NAME     = aws_db_instance.postgres.db_name
+    DB_HOST     = aws_db_instance.database.address
+    DB_PORT     = aws_db_instance.database.port
+    DB_NAME     = aws_db_instance.database.db_name
+{{/hasDatabase}}
   })
 }
