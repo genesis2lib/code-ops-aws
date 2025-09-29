@@ -208,6 +208,39 @@ resource "aws_iam_role_policy_attachment" "rds_monitoring" {
 
 {{#isMongoDB}}
 # MongoDB using Amazon DocumentDB
+resource "aws_security_group" "docdb" {
+  name        = "${local.project_name}-${var.environment}-docdb-sg"
+  description = "Security group for DocumentDB"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    from_port   = 27017
+    to_port     = 27017
+    protocol    = "tcp"
+    cidr_blocks = [aws_vpc.main.cidr_block]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = merge(local.common_tags, {
+    Name = "${local.project_name}-${var.environment}-docdb-sg"
+  })
+}
+
+resource "aws_docdb_subnet_group" "database" {
+  name       = "${local.project_name}-${var.environment}-docdb-subnet-group"
+  subnet_ids = aws_subnet.private[*].id
+
+  tags = merge(local.common_tags, {
+    Name = "${local.project_name}-${var.environment}-docdb-subnet-group"
+  })
+}
+
 resource "aws_docdb_cluster" "database" {
   cluster_identifier      = "${local.project_name}-${var.environment}-docdb"
   engine                  = "docdb"
@@ -218,8 +251,8 @@ resource "aws_docdb_cluster" "database" {
   skip_final_snapshot     = var.environment != "production"
   deletion_protection      = var.environment == "production"
   
-  vpc_security_group_ids = [aws_security_group.rds.id]
-  db_subnet_group_name   = aws_db_subnet_group.database.name
+  vpc_security_group_ids = [aws_security_group.docdb.id]
+  db_subnet_group_name   = aws_docdb_subnet_group.database.name
   
   tags = merge(local.common_tags, {
     Name = "${local.project_name}-${var.environment}-docdb"
@@ -240,6 +273,30 @@ resource "aws_docdb_cluster_instance" "database" {
 
 {{#isRedis}}
 # Redis using Amazon ElastiCache
+resource "aws_security_group" "redis" {
+  name        = "${local.project_name}-${var.environment}-redis-sg"
+  description = "Security group for Redis ElastiCache"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    from_port   = 6379
+    to_port     = 6379
+    protocol    = "tcp"
+    cidr_blocks = [aws_vpc.main.cidr_block]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = merge(local.common_tags, {
+    Name = "${local.project_name}-${var.environment}-redis-sg"
+  })
+}
+
 resource "aws_elasticache_subnet_group" "database" {
   name       = "${local.project_name}-${var.environment}-cache-subnet-group"
   subnet_ids = aws_subnet.private[*].id
@@ -273,6 +330,30 @@ resource "aws_elasticache_replication_group" "database" {
 
 {{#isElasticsearch}}
 # Elasticsearch using Amazon OpenSearch
+resource "aws_security_group" "opensearch" {
+  name        = "${local.project_name}-${var.environment}-opensearch-sg"
+  description = "Security group for OpenSearch"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = [aws_vpc.main.cidr_block]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = merge(local.common_tags, {
+    Name = "${local.project_name}-${var.environment}-opensearch-sg"
+  })
+}
+
 resource "aws_opensearch_domain" "database" {
   domain_name    = "${local.project_name}-${var.environment}-opensearch"
   engine_version = "OpenSearch_2.11"
@@ -325,6 +406,30 @@ resource "aws_keyspaces_keyspace" "database" {
 
 {{#isCouchbase}}
 # Couchbase using EC2 instances (no managed service available)
+resource "aws_security_group" "couchbase" {
+  name        = "${local.project_name}-${var.environment}-couchbase-sg"
+  description = "Security group for Couchbase EC2 instances"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    from_port   = 8091
+    to_port     = 8096
+    protocol    = "tcp"
+    cidr_blocks = [aws_vpc.main.cidr_block]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = merge(local.common_tags, {
+    Name = "${local.project_name}-${var.environment}-couchbase-sg"
+  })
+}
+
 resource "aws_instance" "couchbase" {
   count         = var.environment == "production" ? 2 : 1
   ami           = data.aws_ami.amazon_linux.id
@@ -346,6 +451,37 @@ resource "aws_instance" "couchbase" {
 
 {{#isNeo4j}}
 # Neo4j using EC2 instances (no managed service available)
+resource "aws_security_group" "neo4j" {
+  name        = "${local.project_name}-${var.environment}-neo4j-sg"
+  description = "Security group for Neo4j EC2 instances"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    from_port   = 7474
+    to_port     = 7474
+    protocol    = "tcp"
+    cidr_blocks = [aws_vpc.main.cidr_block]
+  }
+
+  ingress {
+    from_port   = 7687
+    to_port     = 7687
+    protocol    = "tcp"
+    cidr_blocks = [aws_vpc.main.cidr_block]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = merge(local.common_tags, {
+    Name = "${local.project_name}-${var.environment}-neo4j-sg"
+  })
+}
+
 resource "aws_instance" "neo4j" {
   count         = 1
   ami           = data.aws_ami.amazon_linux.id
