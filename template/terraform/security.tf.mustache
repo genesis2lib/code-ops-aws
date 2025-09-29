@@ -146,12 +146,94 @@ resource "aws_secretsmanager_secret_version" "app_secrets" {
 
     # Database secrets
 {{#hasDatabase}}
+{{#isPostgreSQL}}
     DB_USERNAME = "{{projectName}}admin"
     DB_PASSWORD = random_password.db_password.result
     DB_ENGINE   = "postgres"
     DB_HOST     = aws_db_instance.database.address
     DB_PORT     = aws_db_instance.database.port
     DB_NAME     = aws_db_instance.database.db_name
+{{/isPostgreSQL}}
+{{#isMySQL}}
+    DB_USERNAME = "{{projectName}}admin"
+    DB_PASSWORD = random_password.db_password.result
+    DB_ENGINE   = "mysql"
+    DB_HOST     = aws_db_instance.database.address
+    DB_PORT     = aws_db_instance.database.port
+    DB_NAME     = aws_db_instance.database.db_name
+{{/isMySQL}}
+{{#isMariaDB}}
+    DB_USERNAME = "{{projectName}}admin"
+    DB_PASSWORD = random_password.db_password.result
+    DB_ENGINE   = "mariadb"
+    DB_HOST     = aws_db_instance.database.address
+    DB_PORT     = aws_db_instance.database.port
+    DB_NAME     = aws_db_instance.database.db_name
+{{/isMariaDB}}
+{{#isOracle}}
+    DB_USERNAME = "{{projectName}}admin"
+    DB_PASSWORD = random_password.db_password.result
+    DB_ENGINE   = "oracle"
+    DB_HOST     = aws_db_instance.database.address
+    DB_PORT     = aws_db_instance.database.port
+    DB_NAME     = aws_db_instance.database.db_name
+{{/isOracle}}
+{{#isSQLServer}}
+    DB_USERNAME = "{{projectName}}admin"
+    DB_PASSWORD = random_password.db_password.result
+    DB_ENGINE   = "sqlserver"
+    DB_HOST     = aws_db_instance.database.address
+    DB_PORT     = aws_db_instance.database.port
+    DB_NAME     = aws_db_instance.database.db_name
+{{/isSQLServer}}
+{{#isMongoDB}}
+    DB_USERNAME = "{{projectName}}admin"
+    DB_PASSWORD = random_password.db_password.result
+    DB_ENGINE   = "mongodb"
+    DB_HOST     = aws_docdb_cluster.database.endpoint
+    DB_PORT     = "27017"
+    DB_NAME     = "{{projectName}}db"
+{{/isMongoDB}}
+{{#isRedis}}
+    DB_USERNAME = ""
+    DB_PASSWORD = ""
+    DB_ENGINE   = "redis"
+    DB_HOST     = aws_elasticache_replication_group.database.primary_endpoint_address
+    DB_PORT     = "6379"
+    DB_NAME     = "0"
+{{/isRedis}}
+{{#isElasticsearch}}
+    DB_USERNAME = ""
+    DB_PASSWORD = ""
+    DB_ENGINE   = "elasticsearch"
+    DB_HOST     = aws_opensearch_domain.database.endpoint
+    DB_PORT     = "443"
+    DB_NAME     = "{{projectName}}"
+{{/isElasticsearch}}
+{{#isCassandra}}
+    DB_USERNAME = ""
+    DB_PASSWORD = ""
+    DB_ENGINE   = "cassandra"
+    DB_HOST     = "cassandra.${data.aws_region.current.name}.amazonaws.com"
+    DB_PORT     = "9142"
+    DB_NAME     = "{{projectName}}_{{environment}}"
+{{/isCassandra}}
+{{#isCouchbase}}
+    DB_USERNAME = "{{projectName}}admin"
+    DB_PASSWORD = random_password.db_password.result
+    DB_ENGINE   = "couchbase"
+    DB_HOST     = join(",", aws_instance.couchbase[*].private_ip)
+    DB_PORT     = "8091"
+    DB_NAME     = "{{projectName}}"
+{{/isCouchbase}}
+{{#isNeo4j}}
+    DB_USERNAME = "{{projectName}}admin"
+    DB_PASSWORD = random_password.db_password.result
+    DB_ENGINE   = "neo4j"
+    DB_HOST     = aws_instance.neo4j[0].private_ip
+    DB_PORT     = "7474"
+    DB_NAME     = "{{projectName}}"
+{{/isNeo4j}}
 {{/hasDatabase}}
   })
 }

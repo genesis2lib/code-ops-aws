@@ -24,11 +24,83 @@ output "load_balancer_zone_id" {
 }
 
 {{#hasDatabase}}
+{{#isPostgreSQL}}
 output "database_endpoint" {
-  description = "RDS database endpoint"
+  description = "RDS PostgreSQL database endpoint"
   value       = aws_db_instance.database.endpoint
   sensitive   = true
 }
+{{/isPostgreSQL}}
+{{#isMySQL}}
+output "database_endpoint" {
+  description = "RDS MySQL database endpoint"
+  value       = aws_db_instance.database.endpoint
+  sensitive   = true
+}
+{{/isMySQL}}
+{{#isMariaDB}}
+output "database_endpoint" {
+  description = "RDS MariaDB database endpoint"
+  value       = aws_db_instance.database.endpoint
+  sensitive   = true
+}
+{{/isMariaDB}}
+{{#isOracle}}
+output "database_endpoint" {
+  description = "RDS Oracle database endpoint"
+  value       = aws_db_instance.database.endpoint
+  sensitive   = true
+}
+{{/isOracle}}
+{{#isSQLServer}}
+output "database_endpoint" {
+  description = "RDS SQL Server database endpoint"
+  value       = aws_db_instance.database.endpoint
+  sensitive   = true
+}
+{{/isSQLServer}}
+{{#isMongoDB}}
+output "database_endpoint" {
+  description = "DocumentDB cluster endpoint"
+  value       = aws_docdb_cluster.database.endpoint
+  sensitive   = true
+}
+{{/isMongoDB}}
+{{#isRedis}}
+output "database_endpoint" {
+  description = "ElastiCache Redis endpoint"
+  value       = aws_elasticache_replication_group.database.primary_endpoint_address
+  sensitive   = true
+}
+{{/isRedis}}
+{{#isElasticsearch}}
+output "database_endpoint" {
+  description = "OpenSearch domain endpoint"
+  value       = aws_opensearch_domain.database.endpoint
+  sensitive   = true
+}
+{{/isElasticsearch}}
+{{#isCassandra}}
+output "database_endpoint" {
+  description = "Keyspaces keyspace endpoint"
+  value       = "cassandra.${data.aws_region.current.name}.amazonaws.com"
+  sensitive   = true
+}
+{{/isCassandra}}
+{{#isCouchbase}}
+output "database_endpoint" {
+  description = "Couchbase cluster endpoint"
+  value       = join(",", aws_instance.couchbase[*].private_ip)
+  sensitive   = true
+}
+{{/isCouchbase}}
+{{#isNeo4j}}
+output "database_endpoint" {
+  description = "Neo4j cluster endpoint"
+  value       = aws_instance.neo4j[0].private_ip
+  sensitive   = true
+}
+{{/isNeo4j}}
 {{/hasDatabase}}
 
 output "autoscaling_group_name" {

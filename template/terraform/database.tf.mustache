@@ -200,4 +200,168 @@ resource "aws_iam_role_policy_attachment" "rds_monitoring" {
   role       = aws_iam_role.rds_monitoring.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole"
 }
+{{/isPostgreSQL}}
+{{/isMySQL}}
+{{/isMariaDB}}
+{{/isOracle}}
+{{/isSQLServer}}
+
+{{#isMongoDB}}
+# MongoDB using Amazon DocumentDB
+resource "aws_docdb_cluster" "database" {
+  cluster_identifier      = "${local.project_name}-${var.environment}-docdb"
+  engine                  = "docdb"
+  master_username         = "${replace(local.project_name, "-", "")}admin"
+  master_password         = random_password.db_password.result
+  backup_retention_period = var.environment == "production" ? 7 : 1
+  preferred_backup_window = "03:00-04:00"
+  skip_final_snapshot     = var.environment != "production"
+  deletion_protection      = var.environment == "production"
+  
+  vpc_security_group_ids = [aws_security_group.rds.id]
+  db_subnet_group_name   = aws_db_subnet_group.database.name
+  
+  tags = merge(local.common_tags, {
+    Name = "${local.project_name}-${var.environment}-docdb"
+  })
+}
+
+resource "aws_docdb_cluster_instance" "database" {
+  count              = 1
+  identifier         = "${local.project_name}-${var.environment}-docdb-${count.index}"
+  cluster_identifier = aws_docdb_cluster.database.id
+  instance_class     = var.database_instance_class
+  
+  tags = merge(local.common_tags, {
+    Name = "${local.project_name}-${var.environment}-docdb-${count.index}"
+  })
+}
+{{/isMongoDB}}
+
+{{#isRedis}}
+# Redis using Amazon ElastiCache
+resource "aws_elasticache_subnet_group" "database" {
+  name       = "${local.project_name}-${var.environment}-cache-subnet-group"
+  subnet_ids = aws_subnet.private[*].id
+  
+  tags = merge(local.common_tags, {
+    Name = "${local.project_name}-${var.environment}-cache-subnet-group"
+  })
+}
+
+resource "aws_elasticache_replication_group" "database" {
+  replication_group_id       = "${local.project_name}-${var.environment}-redis"
+  description                = "Redis cluster for ${local.project_name}"
+  node_type                  = var.database_instance_class
+  port                       = 6379
+  parameter_group_name       = "default.redis7"
+  num_cache_clusters         = 1
+  automatic_failover_enabled = var.environment == "production"
+  multi_az_enabled          = var.environment == "production"
+  
+  subnet_group_name  = aws_elasticache_subnet_group.database.name
+  security_group_ids = [aws_security_group.redis.id]
+  
+  at_rest_encryption_enabled = true
+  transit_encryption_enabled  = true
+  
+  tags = merge(local.common_tags, {
+    Name = "${local.project_name}-${var.environment}-redis"
+  })
+}
+{{/isRedis}}
+
+{{#isElasticsearch}}
+# Elasticsearch using Amazon OpenSearch
+resource "aws_opensearch_domain" "database" {
+  domain_name    = "${local.project_name}-${var.environment}-opensearch"
+  engine_version = "OpenSearch_2.11"
+  
+  cluster_config {
+    instance_type = var.database_instance_class
+    instance_count = var.environment == "production" ? 2 : 1
+  }
+  
+  ebs_options {
+    ebs_enabled = true
+    volume_type = "gp3"
+    volume_size = 20
+  }
+  
+  vpc_options {
+    subnet_ids         = aws_subnet.private[*].id
+    security_group_ids = [aws_security_group.opensearch.id]
+  }
+  
+  encrypt_at_rest {
+    enabled = true
+  }
+  
+  node_to_node_encryption {
+    enabled = true
+  }
+  
+  domain_endpoint_options {
+    enforce_https       = true
+    tls_security_policy = "Policy-Min-TLS-1-2-2019-07"
+  }
+  
+  tags = merge(local.common_tags, {
+    Name = "${local.project_name}-${var.environment}-opensearch"
+  })
+}
+{{/isElasticsearch}}
+
+{{#isCassandra}}
+# Cassandra using Amazon Keyspaces
+resource "aws_keyspaces_keyspace" "database" {
+  name = "${replace(local.project_name, "-", "")}_${var.environment}"
+  
+  tags = merge(local.common_tags, {
+    Name = "${local.project_name}-${var.environment}-keyspace"
+  })
+}
+{{/isCassandra}}
+
+{{#isCouchbase}}
+# Couchbase using EC2 instances (no managed service available)
+resource "aws_instance" "couchbase" {
+  count         = var.environment == "production" ? 2 : 1
+  ami           = data.aws_ami.amazon_linux.id
+  instance_type = var.database_instance_class
+  
+  subnet_id              = aws_subnet.private[count.index % length(aws_subnet.private)].id
+  vpc_security_group_ids = [aws_security_group.couchbase.id]
+  
+  user_data = base64encode(templatefile("${path.module}/couchbase-setup.sh", {
+    project_name = local.project_name
+    environment  = var.environment
+  }))
+  
+  tags = merge(local.common_tags, {
+    Name = "${local.project_name}-${var.environment}-couchbase-${count.index + 1}"
+  })
+}
+{{/isCouchbase}}
+
+{{#isNeo4j}}
+# Neo4j using EC2 instances (no managed service available)
+resource "aws_instance" "neo4j" {
+  count         = 1
+  ami           = data.aws_ami.amazon_linux.id
+  instance_type = var.database_instance_class
+  
+  subnet_id              = aws_subnet.private[0].id
+  vpc_security_group_ids = [aws_security_group.neo4j.id]
+  
+  user_data = base64encode(templatefile("${path.module}/neo4j-setup.sh", {
+    project_name = local.project_name
+    environment  = var.environment
+  }))
+  
+  tags = merge(local.common_tags, {
+    Name = "${local.project_name}-${var.environment}-neo4j"
+  })
+}
+{{/isNeo4j}}
 {{/hasDatabase}}
