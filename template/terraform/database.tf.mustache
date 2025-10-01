@@ -47,7 +47,7 @@ resource "aws_db_parameter_group" "database" {
 
   parameter {
     name  = "long_query_time"
-    value = "1"
+    value = "2"
   }
 
   tags = merge(local.common_tags, {
@@ -72,7 +72,7 @@ resource "aws_db_parameter_group" "database" {
 
   parameter {
     name  = "long_query_time"
-    value = "1"
+    value = "2"
   }
 
   tags = merge(local.common_tags, {
@@ -94,116 +94,212 @@ resource "random_password" "db_password" {
 
 # Database password is now part of app_secrets in security.tf
 
+{{#isPostgreSQL}}
 resource "aws_db_instance" "database" {
   identifier = "${local.project_name}-${var.environment}-db"
+  engine         = "postgres"
+  engine_version = "16.4"
+  instance_class = var.database_instance_class
+  db_name  = "${replace(local.project_name, "-", "")}db"
+  username = "${replace(local.project_name, "-", "")}admin"
+  password = random_password.db_password.result
 
   allocated_storage     = var.database_allocated_storage
   max_allocated_storage = var.database_allocated_storage * 2
   storage_type          = "gp3"
   storage_encrypted     = true
 
-  {{#isPostgreSQL}}
-  engine         = "postgres"
-  engine_version = "16.4"
-  {{/isPostgreSQL}}
-  {{#isMySQL}}
-  engine         = "mysql"
-  engine_version = "8.0.35"
-  {{/isMySQL}}
-  {{#isMariaDB}}
-  engine         = "mariadb"
-  engine_version = "10.11.6"
-  {{/isMariaDB}}
-  {{#isOracle}}
-  engine         = "oracle-ee"
-  engine_version = "19.0.0.0.ru-2023-10.rur-2023-10.r1"
-  {{/isOracle}}
-  {{#isSQLServer}}
-  engine         = "sqlserver-ex"
-  engine_version = "15.00.4236.7.v1"
-  {{/isSQLServer}}
-
-  instance_class = var.database_instance_class
-
-  {{#isPostgreSQL}}
-  db_name  = "${replace(local.project_name, "-", "")}db"
-  {{/isPostgreSQL}}
-  {{#isMySQL}}
-  db_name  = "${replace(local.project_name, "-", "")}db"
-  {{/isMySQL}}
-  {{#isMariaDB}}
-  db_name  = "${replace(local.project_name, "-", "")}db"
-  {{/isMariaDB}}
-  {{#isOracle}}
-  # Oracle doesn't use db_name parameter
-  {{/isOracle}}
-  {{#isSQLServer}}
-  db_name  = "${replace(local.project_name, "-", "")}db"
-  {{/isSQLServer}}
-
-  username = "${replace(local.project_name, "-", "")}admin"
-  password = random_password.db_password.result
-
   vpc_security_group_ids = [aws_security_group.rds.id]
   db_subnet_group_name   = aws_db_subnet_group.database.name
-  {{#isPostgreSQL}}
   parameter_group_name   = aws_db_parameter_group.database.name
-  {{/isPostgreSQL}}
-  {{#isMySQL}}
-  parameter_group_name   = aws_db_parameter_group.database.name
-  {{/isMySQL}}
-  {{#isMariaDB}}
-  parameter_group_name   = aws_db_parameter_group.database.name
-  {{/isMariaDB}}
 
   backup_retention_period = var.environment == "production" ? 7 : 1
   backup_window           = "03:00-04:00"
   maintenance_window      = "sun:04:00-sun:05:00"
-
-  skip_final_snapshot       = var.environment != "production"
-  final_snapshot_identifier = var.environment == "production" ? "${local.project_name}-${var.environment}-final-snapshot-${formatdate("YYYY-MM-DD-hhmm", timestamp())}" : null
-
-  copy_tags_to_snapshot = true
-  deletion_protection   = var.environment == "production"
-
-  performance_insights_enabled = true
-  monitoring_interval          = 60
-  monitoring_role_arn          = aws_iam_role.rds_monitoring.arn
+  skip_final_snapshot     = var.environment != "production"
+  deletion_protection     = var.environment == "production"
 
   tags = merge(local.common_tags, {
-    Name = "${local.project_name}-${var.environment}-database"
+    Name = "${local.project_name}-${var.environment}-db"
   })
-}
 
-resource "aws_iam_role" "rds_monitoring" {
-  name = "${local.project_name}-${var.environment}-rds-monitoring-role"
+  monitoring_interval = 60
+  monitoring_role_arn = aws_iam_role.rds_monitoring.arn
 
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Principal = {
-          Service = "monitoring.rds.amazonaws.com"
-        }
-      }
+  lifecycle {
+    create_before_destroy = true
+    ignore_changes = [
+      password,
+      latest_restorable_time
     ]
-  })
-
-  tags = merge(local.common_tags, {
-    Name = "${local.project_name}-${var.environment}-rds-monitoring-role"
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "rds_monitoring" {
-  role       = aws_iam_role.rds_monitoring.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole"
+  }
 }
 {{/isPostgreSQL}}
+
+{{#isMySQL}}
+resource "aws_db_instance" "database" {
+  identifier = "${local.project_name}-${var.environment}-db"
+  engine         = "mysql"
+  engine_version = "8.0.35"
+  instance_class = var.database_instance_class
+  db_name  = "${replace(local.project_name, "-", "")}db"
+  username = "${replace(local.project_name, "-", "")}admin"
+  password = random_password.db_password.result
+
+  allocated_storage     = var.database_allocated_storage
+  max_allocated_storage = var.database_allocated_storage * 2
+  storage_type          = "gp3"
+  storage_encrypted     = true
+
+  vpc_security_group_ids = [aws_security_group.rds.id]
+  db_subnet_group_name   = aws_db_subnet_group.database.name
+  parameter_group_name   = aws_db_parameter_group.database.name
+
+  backup_retention_period = var.environment == "production" ? 7 : 1
+  backup_window           = "03:00-04:00"
+  maintenance_window      = "sun:04:00-sun:05:00"
+  skip_final_snapshot     = var.environment != "production"
+  deletion_protection     = var.environment == "production"
+
+  tags = merge(local.common_tags, {
+    Name = "${local.project_name}-${var.environment}-db"
+  })
+
+  monitoring_interval = 60
+  monitoring_role_arn = aws_iam_role.rds_monitoring.arn
+
+  lifecycle {
+    create_before_destroy = true
+    ignore_changes = [
+      password,
+      latest_restorable_time
+    ]
+  }
+}
 {{/isMySQL}}
+
+{{#isMariaDB}}
+resource "aws_db_instance" "database" {
+  identifier = "${local.project_name}-${var.environment}-db"
+  engine         = "mariadb"
+  engine_version = "10.11.6"
+  instance_class = var.database_instance_class
+  db_name  = "${replace(local.project_name, "-", "")}db"
+  username = "${replace(local.project_name, "-", "")}admin"
+  password = random_password.db_password.result
+
+  allocated_storage     = var.database_allocated_storage
+  max_allocated_storage = var.database_allocated_storage * 2
+  storage_type          = "gp3"
+  storage_encrypted     = true
+
+  vpc_security_group_ids = [aws_security_group.rds.id]
+  db_subnet_group_name   = aws_db_subnet_group.database.name
+  parameter_group_name   = aws_db_parameter_group.database.name
+
+  backup_retention_period = var.environment == "production" ? 7 : 1
+  backup_window           = "03:00-04:00"
+  maintenance_window      = "sun:04:00-sun:05:00"
+  skip_final_snapshot     = var.environment != "production"
+  deletion_protection     = var.environment == "production"
+
+  tags = merge(local.common_tags, {
+    Name = "${local.project_name}-${var.environment}-db"
+  })
+
+  monitoring_interval = 60
+  monitoring_role_arn = aws_iam_role.rds_monitoring.arn
+
+  lifecycle {
+    create_before_destroy = true
+    ignore_changes = [
+      password,
+      latest_restorable_time
+    ]
+  }
+}
 {{/isMariaDB}}
+
+{{#isOracle}}
+resource "aws_db_instance" "database" {
+  identifier = "${local.project_name}-${var.environment}-db"
+  engine         = "oracle-ee"
+  engine_version = "19.0.0.0.ru-2023-10.rur-2023-10.r1"
+  instance_class = var.database_instance_class
+  username = "${replace(local.project_name, "-", "")}admin"
+  password = random_password.db_password.result
+
+  allocated_storage     = var.database_allocated_storage
+  max_allocated_storage = var.database_allocated_storage * 2
+  storage_type          = "gp3"
+  storage_encrypted     = true
+
+  vpc_security_group_ids = [aws_security_group.rds.id]
+  db_subnet_group_name   = aws_db_subnet_group.database.name
+
+  backup_retention_period = var.environment == "production" ? 7 : 1
+  backup_window           = "03:00-04:00"
+  maintenance_window      = "sun:04:00-sun:05:00"
+  skip_final_snapshot     = var.environment != "production"
+  deletion_protection     = var.environment == "production"
+
+  tags = merge(local.common_tags, {
+    Name = "${local.project_name}-${var.environment}-db"
+  })
+
+  monitoring_interval = 60
+  monitoring_role_arn = aws_iam_role.rds_monitoring.arn
+
+  lifecycle {
+    create_before_destroy = true
+    ignore_changes = [
+      password,
+      latest_restorable_time
+    ]
+  }
+}
 {{/isOracle}}
+
+{{#isSQLServer}}
+resource "aws_db_instance" "database" {
+  identifier = "${local.project_name}-${var.environment}-db"
+  engine         = "sqlserver-ex"
+  engine_version = "15.00.4236.7.v1"
+  instance_class = var.database_instance_class
+  db_name  = "${replace(local.project_name, "-", "")}db"
+  username = "${replace(local.project_name, "-", "")}admin"
+  password = random_password.db_password.result
+
+  allocated_storage     = var.database_allocated_storage
+  max_allocated_storage = var.database_allocated_storage * 2
+  storage_type          = "gp3"
+  storage_encrypted     = true
+
+  vpc_security_group_ids = [aws_security_group.rds.id]
+  db_subnet_group_name   = aws_db_subnet_group.database.name
+  parameter_group_name   = aws_db_parameter_group.database.name
+
+  backup_retention_period = var.environment == "production" ? 7 : 1
+  backup_window           = "03:00-04:00"
+  maintenance_window      = "sun:04:00-sun:05:00"
+  skip_final_snapshot     = var.environment != "production"
+  deletion_protection     = var.environment == "production"
+
+  tags = merge(local.common_tags, {
+    Name = "${local.project_name}-${var.environment}-db"
+  })
+
+  monitoring_interval = 60
+  monitoring_role_arn = aws_iam_role.rds_monitoring.arn
+
+  lifecycle {
+    create_before_destroy = true
+    ignore_changes = [
+      password,
+      latest_restorable_time
+    ]
+  }
+}
 {{/isSQLServer}}
 
 {{#isMongoDB}}
@@ -249,7 +345,7 @@ resource "aws_docdb_cluster" "database" {
   backup_retention_period = var.environment == "production" ? 7 : 1
   preferred_backup_window = "03:00-04:00"
   skip_final_snapshot     = var.environment != "production"
-  deletion_protection      = var.environment == "production"
+  deletion_protection     = var.environment == "production"
   
   vpc_security_group_ids = [aws_security_group.docdb.id]
   db_subnet_group_name   = aws_docdb_subnet_group.database.name
@@ -383,9 +479,23 @@ resource "aws_opensearch_domain" "database" {
   }
   
   domain_endpoint_options {
-    enforce_https       = true
+    enforce_https = true
     tls_security_policy = "Policy-Min-TLS-1-2-2019-07"
   }
+  
+  access_policies = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Principal = {
+          AWS = "*"
+        },
+        Action = "es:*",
+        Resource = "arn:aws:es:${var.aws_region}:${data.aws_caller_identity.current.account_id}:domain/${local.project_name}-${var.environment}-opensearch/*"
+      }
+    ]
+  })
   
   tags = merge(local.common_tags, {
     Name = "${local.project_name}-${var.environment}-opensearch"
@@ -442,7 +552,6 @@ resource "aws_instance" "couchbase" {
     project_name = local.project_name
     environment  = var.environment
   }))
-  
   tags = merge(local.common_tags, {
     Name = "${local.project_name}-${var.environment}-couchbase-${count.index + 1}"
   })
@@ -494,10 +603,36 @@ resource "aws_instance" "neo4j" {
     project_name = local.project_name
     environment  = var.environment
   }))
-  
   tags = merge(local.common_tags, {
     Name = "${local.project_name}-${var.environment}-neo4j"
   })
 }
 {{/isNeo4j}}
+
+# RDS monitoring role for all database types
+resource "aws_iam_role" "rds_monitoring" {
+  name = "${local.project_name}-${var.environment}-rds-monitoring-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "monitoring.rds.amazonaws.com"
+        }
+      }
+    ]
+  })
+
+  tags = merge(local.common_tags, {
+    Name = "${local.project_name}-${var.environment}-rds-monitoring-role"
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "rds_monitoring" {
+  role       = aws_iam_role.rds_monitoring.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole"
+}
 {{/hasDatabase}}
